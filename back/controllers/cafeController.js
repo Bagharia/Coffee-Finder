@@ -30,3 +30,17 @@ exports.getCafeById = async (req, res) => {
             res.status(404).json({ error: 'Le cafe n existe pas' });
         }
 };
+
+exports.getCafeByArrondissement = async (req, res) => {
+    try {
+        const arrondissement = req.params.arr; 
+        const [rows] = await db.query(
+            'SELECT * FROM cafes JOIN criteres_cafe ON cafes.id = criteres_cafe.cafe_id WHERE cafes.arrondissement = ?',
+            [arrondissement]
+        );
+        res.json(rows)
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ error: 'Database error' });
+        }
+};

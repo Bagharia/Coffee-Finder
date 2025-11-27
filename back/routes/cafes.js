@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 
-const { getAllCafes } = require('../controllers/cafeController');
-const { getCafeById } = require('../controllers/cafeController');
+const { getAllCafes, getCafeById, getCafeByArrondissement } = require('../controllers/cafeController');
 
-router.get('/', getAllCafes);
+router.get('/arrondissement/:arr', getCafeByArrondissement);
 router.get('/:id', getCafeById);
+router.get('/', getAllCafes);
+
 
 module.exports = router;

@@ -52,12 +52,13 @@ exports.getCafeByArrondissement = async (req, res) => {
 
 exports.getCafeBySpecialite = async (req, res) => {
     try {
-        const specialite = req.params.spec; 
+        const specialite = req.params.spec;
         const [rows] = await db.query(
-            `SELECT cafes.*, criteres_cafe.specialite  
-            FROM cafes JOIN criteres_cafe ON cafes.id = criteres_cafe.cafe_id 
-            WHERE FIND_IN_SET(?, criteres_cafe.specialite);`,
-            [specialite]
+            `SELECT cafes.*, criteres_cafe.*
+            FROM cafes JOIN criteres_cafe ON cafes.id = criteres_cafe.cafe_id
+            WHERE FIND_IN_SET(LOWER(?), LOWER(REPLACE(criteres_cafe.specialite, ' ', '')))
+            OR FIND_IN_SET(LOWER(?), LOWER(criteres_cafe.specialite));`,
+            [specialite.replace(/\s/g, ''), specialite]
         );
         res.setHeader('Content-Type', 'application/json');
         res.send(JSON.stringify(rows, null, 2));

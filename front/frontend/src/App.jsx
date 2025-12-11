@@ -5,6 +5,7 @@ import Footer from "./components/Footer";
 import Home from "./pages/Home";
 import CafePage from "./pages/CafePage";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import CategoryPage from "./pages/CategoryPage";
 
 
@@ -22,6 +23,7 @@ function App() {
             <Route path="/cafes" element={<CafePage />} />
             <Route path="/category/:category" element={<CategoryPage />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
           </Routes>
         </main>
         <Footer />

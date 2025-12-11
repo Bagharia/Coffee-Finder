@@ -4,6 +4,8 @@ export default function Login() {
       {/* Left side - Form */}
       <div className="flex-1 flex items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8">
         <form className="flex flex-col gap-2.5 bg-white p-8 w-full max-w-md rounded-[20px] shadow-lg font-sans">
+          <h2 className="text-2xl font-bold text-[#151717] text-center mb-2">Welcome Back</h2>
+
           <div className="flex flex-col">
             <label className="text-[#151717] font-semibold">Email</label>
           </div>
@@ -39,7 +41,7 @@ export default function Login() {
           </div>
           <button className="my-5 mb-2.5 bg-[#151717] border-none text-white text-[15px] font-medium rounded-[10px] h-[50px] w-full cursor-pointer hover:bg-[#252727] transition-colors">Sign In</button>
           <p className="text-center text-black text-sm my-1">
-            Don't have an account? <span className="text-sm ml-1 text-[#2d79f3] font-medium cursor-pointer">Sign Up</span>
+            Don't have an account? <a href="register" className="text-sm ml-1 text-[#2d79f3] font-medium cursor-pointer">Sign Up</a>
           </p>
           <p className="text-center text-black text-sm my-1 relative before:content-[''] before:absolute before:left-0 before:top-1/2 before:w-[45%] before:h-[1px] before:bg-gray-300 after:content-[''] after:absolute after:right-0 after:top-1/2 after:w-[45%] after:h-[1px] after:bg-gray-300">Or With</p>
 

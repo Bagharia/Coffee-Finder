@@ -1,6 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-// Fonction générique pour les requêtes GET
+// Fonction generique pour les requetes GET
 const get = async (endpoint) => {
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`);
@@ -9,18 +9,48 @@ const get = async (endpoint) => {
     }
     return await response.json();
   } catch (error) {
-    console.error('Erreur lors de la requête GET:', error);
+    console.error('Erreur lors de la requete GET:', error);
     throw error;
   }
 };
 
-// Fonction générique pour les requêtes POST
-const post = async (endpoint, data) => {
+// Fonction pour obtenir le token depuis localStorage
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+};
+
+// Fonction generique pour les requetes POST
+const post = async (endpoint, data, requiresAuth = false) => {
   try {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(requiresAuth ? getAuthHeaders() : {})
+    };
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'POST',
+      headers,
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Erreur lors de la requete POST:', error);
+    throw error;
+  }
+};
+
+// Fonction generique pour les requetes PUT
+const put = async (endpoint, data) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeaders()
       },
       body: JSON.stringify(data),
     });
@@ -29,42 +59,43 @@ const post = async (endpoint, data) => {
     }
     return await response.json();
   } catch (error) {
-    console.error('Erreur lors de la requête POST:', error);
+    console.error('Erreur lors de la requete PUT:', error);
     throw error;
   }
 };
 
-// Fonction générique pour les requêtes DELETE
+// Fonction generique pour les requetes DELETE
 const del = async (endpoint) => {
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(),
     });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     return await response.json();
   } catch (error) {
-    console.error('Erreur lors de la requête DELETE:', error);
+    console.error('Erreur lors de la requete DELETE:', error);
     throw error;
   }
 };
 
-// API des cafés
+// API des cafes
 export const cafesAPI = {
-  // Récupérer tous les cafés
+  // Recuperer tous les cafes
   getAll: () => get('/cafes'),
 
-  // Récupérer un café par ID
+  // Recuperer un cafe par ID
   getById: (id) => get(`/cafes/${id}`),
 
-  // Rechercher des cafés
+  // Rechercher des cafes
   search: (searchTerm) => get(`/cafes/search?q=${encodeURIComponent(searchTerm)}`),
 
   // Filtrer par arrondissement
   getByArrondissement: (arr) => get(`/cafes/arrondissement/${arr}`),
 
-  // Filtrer par spécialité
+  // Filtrer par specialite
   getBySpecialite: (spec) => get(`/cafes/specialite/${encodeURIComponent(spec)}`),
 
   // Filtrer par WiFi
@@ -76,18 +107,32 @@ export const cafesAPI = {
   // Filtrer par prix
   getByPrice: (prix) => get(`/cafes/prix/${prix}`),
 
-  // Créer un nouveau café
-  create: (cafeData) => post('/cafes', cafeData),
+  // Creer un nouveau cafe (necessite authentification admin)
+  create: (cafeData) => post('/cafes', cafeData, true),
 
-  // Supprimer un café
+  // Modifier un cafe (necessite authentification admin)
+  update: (id, cafeData) => put(`/cafes/${id}`, cafeData),
+
+  // Supprimer un cafe (necessite authentification admin)
   delete: (id) => del(`/cafes/${id}`),
 };
 
-// API des utilisateurs (pour plus tard)
+// API des utilisateurs
 export const usersAPI = {
-  // À implémenter selon vos besoins
   login: (credentials) => post('/users/login', credentials),
   register: (userData) => post('/users/register', userData),
+
+  // Stocker le token apres connexion
+  saveToken: (token) => localStorage.setItem('token', token),
+
+  // Recuperer le token
+  getToken: () => localStorage.getItem('token'),
+
+  // Supprimer le token (deconnexion)
+  removeToken: () => localStorage.removeItem('token'),
+
+  // Verifier si l'utilisateur est connecte
+  isAuthenticated: () => !!localStorage.getItem('token'),
 };
 
 export default cafesAPI;

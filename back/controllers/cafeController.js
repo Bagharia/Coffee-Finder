@@ -1,11 +1,55 @@
-const express = require('express');
-const app = express();
-const cors = require('cors');
 const db = require('../config/db');
 
-app.use(cors());
+// Géocode une adresse via Nominatim (OpenStreetMap) — retourne { lat, lon } ou null
+async function geocodeAdresse(adresse) {
+    if (!adresse) return null;
+    try {
+        const query = encodeURIComponent(`${adresse}, Paris, France`);
+        const url = `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`;
+        const res = await fetch(url, {
+            headers: { 'User-Agent': 'SpotThePlace/1.0' }
+        });
+        const data = await res.json();
+        if (data && data.length > 0) {
+            return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+        }
+        return null;
+    } catch (err) {
+        console.error('Geocoding error:', err.message);
+        return null;
+    }
+}
 
-app.set('json spaces', 2);
+exports.getRandomCafe = async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            `SELECT cafes.*, criteres_cafe.*
+             FROM cafes JOIN criteres_cafe ON cafes.id = criteres_cafe.cafe_id
+             ORDER BY RAND() LIMIT 1`
+        );
+        if (rows.length === 0) return res.status(404).json({ error: 'Aucun café' });
+        res.json(rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Database error' });
+    }
+};
+
+exports.getNouveautes = async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            `SELECT cafes.*, criteres_cafe.*
+             FROM cafes JOIN criteres_cafe ON cafes.id = criteres_cafe.cafe_id
+             WHERE cafes.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+             ORDER BY cafes.created_at DESC`
+        );
+        res.setHeader('Content-Type', 'application/json');
+        res.send(JSON.stringify(rows, null, 2));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Database error' });
+    }
+};
 
 exports.getAllCafes = async (req, res) => {
     try {
@@ -217,16 +261,19 @@ exports.searchCafes = async (req, res) => {
 
 exports.createCafe = async (req, res) => {
     try {
-        const { nom, arrondissement, adresse, image_url, nb_personnes, horaires, specialite, prix, wifi, prises ,travailler, theme, ambiance
+        const { nom, arrondissement, adresse, image_url, description, nb_personnes, horaires, specialite, prix, wifi, prises ,travailler, theme, ambiance
         } = req.body;
 
         if (!nom || !arrondissement) {
             return res.status(400).json({ error: "Nom et arrondissement sont obligatoires." });
         }
+        const coords = await geocodeAdresse(adresse);
+
         const [cafeResult] = await db.query(
-            `INSERT INTO cafes (nom, arrondissement, adresse, image_url)
-             VALUES (?, ?, ?, ?)`,
-            [nom, arrondissement, adresse || null, image_url || null]
+            `INSERT INTO cafes (nom, arrondissement, adresse, image_url, description, latitude, longitude)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [nom, arrondissement, adresse || null, image_url || null, description || null,
+             coords ? coords.lat : null, coords ? coords.lon : null]
         );
 
         const cafeId = cafeResult.insertId;
@@ -265,6 +312,135 @@ exports.createCafe = async (req, res) => {
     }
 };
 
+exports.updateCafe = async (req, res) => {
+    try {
+        const cafeId = req.params.id;
+        const {
+            nom, arrondissement, adresse, image_url, description,
+            nb_personnes, horaires, specialite, prix, wifi, prises, travailler, theme, ambiance
+        } = req.body;
+
+        // Vérifier si le café existe
+        const [exists] = await db.query(
+            "SELECT id FROM cafes WHERE id = ?",
+            [cafeId]
+        );
+
+        if (exists.length === 0) {
+            return res.status(404).json({ error: "Café introuvable" });
+        }
+
+        // Mettre à jour la table cafes
+        if (nom || arrondissement || adresse || image_url || description !== undefined) {
+            const updates = [];
+            const values = [];
+
+            if (nom) {
+                updates.push("nom = ?");
+                values.push(nom);
+            }
+            if (arrondissement) {
+                updates.push("arrondissement = ?");
+                values.push(arrondissement);
+            }
+            if (adresse) {
+                updates.push("adresse = ?");
+                values.push(adresse);
+                // Géocoder la nouvelle adresse
+                const coords = await geocodeAdresse(adresse);
+                if (coords) {
+                    updates.push("latitude = ?");
+                    values.push(coords.lat);
+                    updates.push("longitude = ?");
+                    values.push(coords.lon);
+                }
+            }
+            if (image_url) {
+                updates.push("image_url = ?");
+                values.push(image_url);
+            }
+            if (description !== undefined) {
+                updates.push("description = ?");
+                values.push(description || null);
+            }
+
+            if (updates.length > 0) {
+                values.push(cafeId);
+                await db.query(
+                    `UPDATE cafes SET ${updates.join(", ")} WHERE id = ?`,
+                    values
+                );
+            }
+        }
+
+        // Mettre à jour la table criteres_cafe
+        if (nb_personnes || horaires || specialite || prix || wifi !== undefined || prises !== undefined || travailler !== undefined || theme || ambiance) {
+            const updates = [];
+            const values = [];
+
+            if (nb_personnes) {
+                updates.push("nb_personnes = ?");
+                values.push(nb_personnes);
+            }
+            if (horaires) {
+                updates.push("horaires = ?");
+                values.push(horaires);
+            }
+            if (specialite) {
+                updates.push("specialite = ?");
+                values.push(specialite);
+            }
+            if (prix) {
+                updates.push("prix = ?");
+                values.push(prix);
+            }
+            if (wifi !== undefined) {
+                updates.push("wifi = ?");
+                values.push(wifi);
+            }
+            if (prises !== undefined) {
+                updates.push("prises = ?");
+                values.push(prises);
+            }
+            if (travailler !== undefined) {
+                updates.push("travailler = ?");
+                values.push(travailler);
+            }
+            if (theme) {
+                updates.push("theme = ?");
+                values.push(theme);
+            }
+            if (ambiance) {
+                updates.push("ambiance = ?");
+                values.push(ambiance);
+            }
+
+            if (updates.length > 0) {
+                values.push(cafeId);
+                await db.query(
+                    `UPDATE criteres_cafe SET ${updates.join(", ")} WHERE cafe_id = ?`,
+                    values
+                );
+            }
+        }
+
+        // Récupérer le café mis à jour
+        const [updatedCafe] = await db.query(
+            `SELECT cafes.*, criteres_cafe.*
+             FROM cafes
+             JOIN criteres_cafe ON cafes.id = criteres_cafe.cafe_id
+             WHERE cafes.id = ?`,
+            [cafeId]
+        );
+
+        res.json(updatedCafe[0]);
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Erreur lors de la modification du café" });
+    }
+};
+
 exports.deleteCafe = async (req, res) => {
     try {
         const cafeId = req.params.id;
@@ -279,7 +455,7 @@ exports.deleteCafe = async (req, res) => {
         }
 
         await db.query("DELETE FROM criteres_cafe WHERE cafe_id = ?", [cafeId]);
-        
+
         await db.query("DELETE FROM cafes WHERE id = ?", [cafeId]);
 
         res.json({ message: `Café ${cafeId} supprimé avec succès` });

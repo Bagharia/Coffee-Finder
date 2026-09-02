@@ -1,109 +1,89 @@
-import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import CafeCard from "../components/CafeCard";
 import { cafesAPI, LIMITE_MAX } from "../services/api";
 
-const CATEGORY_CONFIG = {
-  cafe:        { label: "Café",       icon: "☕", heroClass: "hero-coffee", accentColor: "rgba(146,64,14,0.08)" },
-  Café:        { label: "Café",       icon: "☕", heroClass: "hero-coffee", accentColor: "rgba(146,64,14,0.08)" },
-  matcha:      { label: "Matcha",     icon: "🍵", heroClass: "hero-matcha", accentColor: "rgba(90,122,74,0.10)" },
-  Matcha:      { label: "Matcha",     icon: "🍵", heroClass: "hero-matcha", accentColor: "rgba(90,122,74,0.10)" },
-  "bubble-tea":{ label: "Bubble Tea", icon: "🧋", heroClass: "hero-bbt",    accentColor: "rgba(139,92,246,0.08)" },
-  "Bubble Tea":{ label: "Bubble Tea", icon: "🧋", heroClass: "hero-bbt",    accentColor: "rgba(139,92,246,0.08)" },
-  bbt:         { label: "Bubble Tea", icon: "🧋", heroClass: "hero-bbt",    accentColor: "rgba(139,92,246,0.08)" },
-  the:         { label: "Thé",        icon: "🫖", heroClass: "hero-tea",    accentColor: "rgba(180,83,9,0.08)" },
-  Thé:         { label: "Thé",        icon: "🫖", heroClass: "hero-tea",    accentColor: "rgba(180,83,9,0.08)" },
-  tea:         { label: "Thé",        icon: "🫖", heroClass: "hero-tea",    accentColor: "rgba(180,83,9,0.08)" },
-};
-
-const SPEC_MAP = {
-  cafe: "Café", matcha: "Matcha", "bubble-tea": "Bubble Tea", bbt: "Bubble Tea",
-  the: "Thé", tea: "Thé",
+// L'URL peut arriver sous plusieurs formes selon d'où l'on vient.
+// La spécialité stockée en base, elle, est unique.
+const SPECIALITES = {
+  cafe: "Café",
+  "Café": "Café",
+  matcha: "Matcha",
+  "Matcha": "Matcha",
+  "bubble-tea": "Bubble Tea",
+  "Bubble Tea": "Bubble Tea",
+  bbt: "Bubble Tea",
+  the: "Thé",
+  tea: "Thé",
+  "Thé": "Thé"
 };
 
 export default function CategoryPage() {
   const { category } = useParams();
-  const [cafes, setCafes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const specialite = SPECIALITES[category] ?? category;
 
-  const config = CATEGORY_CONFIG[category] || {
-    label: category,
-    icon: "☕",
-    heroClass: "hero-coffee",
-    accentColor: "rgba(146,64,14,0.08)",
-  };
+  // On retient la spécialité à laquelle appartient la réponse : tant qu'elle ne
+  // correspond pas à celle de l'URL, l'écran est en chargement. Évite de poser
+  // un état en plein corps d'effet à chaque changement de catégorie.
+  const [reponse, setReponse] = useState({ specialite: null, cafes: [], erreur: null });
+  const chargement = reponse.specialite !== specialite;
+  const { cafes, erreur } = reponse;
 
   useEffect(() => {
-    const specialite = SPEC_MAP[category] || category;
-    setLoading(true);
+    let obsolete = false;
+
     cafesAPI.getBySpecialite(specialite, { limite: LIMITE_MAX })
-      .then((reponse) => setCafes(reponse.donnees))
-      .catch((err) => { console.error(err); setError(err.message); })
-      .finally(() => setLoading(false));
-  }, [category]);
+      .then((res) => {
+        if (!obsolete) setReponse({ specialite, cafes: res.donnees, erreur: null });
+      })
+      .catch((err) => {
+        if (!obsolete) setReponse({ specialite, cafes: [], erreur: err.message });
+      });
 
-  useEffect(() => {
-    if (!loading) {
-      const els = document.querySelectorAll(".reveal");
-      const io = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((e) => {
-            if (e.isIntersecting) { e.target.classList.add("visible"); io.unobserve(e.target); }
-          });
-        },
-        { threshold: 0.1 }
-      );
-      els.forEach((el) => io.observe(el));
-      return () => io.disconnect();
-    }
-  }, [loading, cafes]);
+    // Une réponse qui arrive après un changement de catégorie ne doit pas
+    // écraser la nouvelle.
+    return () => { obsolete = true; };
+  }, [specialite]);
 
   return (
-    <div className="min-h-screen bg-(--bg-page)">
-      {/* Themed hero banner */}
-      <div className={`${config.heroClass} pt-28 pb-14 px-8 relative overflow-hidden`}>
-        <div className="max-w-7xl mx-auto relative z-10">
-          <div className="text-6xl mb-3 anim-fade-up">{config.icon}</div>
-          <h1 className="text-4xl md:text-5xl font-bold text-(--text-primary) mb-2 anim-fade-up tracking-tight"
-            style={{ animationDelay: "0.1s" }}>
-            {config.label}
-          </h1>
-          <p className="text-(--text-secondary) text-lg anim-fade-up" style={{ animationDelay: "0.2s" }}>
-            {loading ? "Chargement..." : `${cafes.length} établissement${cafes.length > 1 ? "s" : ""} à Paris`}
+    <div className="bg-papier">
+      <div className="border-b border-trait px-6 py-12">
+        <div className="mx-auto max-w-5xl">
+          <h1 className="text-section text-encre">{specialite.toLowerCase()}</h1>
+          <p className="mt-1 text-meta text-gris">
+            {chargement
+              ? "on regarde…"
+              : `${cafes.length} adresse${cafes.length > 1 ? "s" : ""} à paris`}
           </p>
         </div>
       </div>
 
-      {/* Card grid */}
-      <div className="max-w-7xl mx-auto px-8 py-12">
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
-            {Array.from({ length: 8 }, (_, i) => (
-              <div key={i} className="skeleton h-64 rounded-2xl" />
-            ))}
+      <div className="mx-auto max-w-5xl px-6 py-12">
+        {chargement ? (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 8 }, (_, i) => <div key={i} className="squelette h-72" />)}
           </div>
-        ) : error ? (
-          <p className="text-center text-red-500 py-20">{error}</p>
+        ) : erreur ? (
+          <p className="mesure text-corps text-encre">
+            {erreur} la liste revient en rafraîchissant la page.
+          </p>
         ) : cafes.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="text-5xl mb-4">{config.icon}</div>
-            <p className="text-(--text-secondary) text-xl">
-              Aucun café trouvé dans la catégorie {config.label}
+          <div className="mesure">
+            <p className="text-corps text-encre">
+              aucune adresse en {specialite.toLowerCase()} dans le guide pour l&apos;instant.
             </p>
-            <a href="/cafes"
-              className="inline-block mt-6 bg-(--accent) text-white px-8 py-3 rounded-xl font-semibold hover:bg-(--accent-light) transition-all btn-press">
-              Voir tous les cafés
-            </a>
+            <Link to="/cafes" className="mt-6 inline-flex items-center bg-plaque px-6 text-white">
+              parcourir tout le guide
+            </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
-            {cafes.map((cafe, i) => (
-              <div key={cafe.id} className={`reveal reveal-delay-${Math.min((i % 4) + 1, 4)}`}>
-                <CafeCard cafe={cafe} />
-              </div>
+          <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {cafes.map((cafe, index) => (
+              <li key={cafe.id}>
+                <CafeCard cafe={cafe} prioritaire={index < 4} />
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </div>
     </div>

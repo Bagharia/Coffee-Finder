@@ -1,86 +1,79 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-
-const IMG = "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=2070&auto=format&fit=crop";
 
 export default function Login() {
   const navigate = useNavigate();
   const { connexion } = useAuth();
-  const [formData, setFormData] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [champs, setChamps] = useState({ email: "", password: "" });
+  const [erreur, setErreur] = useState("");
+  const [enCours, setEnCours] = useState(false);
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const changer = (e) => setChamps({ ...champs, [e.target.name]: e.target.value });
 
-  const handleSubmit = async (e) => {
+  const envoyer = async (e) => {
     e.preventDefault();
-    setError("");
-    if (!formData.email || !formData.password) { setError("Tous les champs sont requis"); return; }
+    setErreur("");
+
+    if (!champs.email || !champs.password) {
+      setErreur("email et mot de passe sont nécessaires.");
+      return;
+    }
+
+    setEnCours(true);
     try {
-      setLoading(true);
-      await connexion({ email: formData.email, password: formData.password });
+      await connexion({ email: champs.email, password: champs.password });
       navigate("/");
     } catch (err) {
-      setError(err.message);
+      setErreur(err.message);
     } finally {
-      setLoading(false);
+      setEnCours(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen bg-(--bg-page)">
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        <img src={IMG} alt="Coffee" className="absolute inset-0 w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent" />
-        <div className="relative z-10 flex flex-col justify-end p-14 pb-16">
-          <p className="text-white/70 text-sm font-semibold tracking-widest uppercase mb-4">SpotThePlace</p>
-          <h2 className="text-3xl font-bold text-white leading-tight mb-3">
-            Votre guide des<br />meilleurs cafés parisiens
-          </h2>
-          <p className="text-white/60 text-base leading-relaxed">
-            Matcha, Bubble Tea, café de spécialité<br />trouvez votre endroit parfait
-          </p>
-        </div>
-      </div>
+    <div className="mx-auto max-w-sm px-6 py-16">
+      <h1 className="text-section text-encre">connexion</h1>
+      <p className="mt-1 text-meta text-gris">pour retrouver vos favoris et vos avis.</p>
 
-      <div className="flex-1 flex items-center justify-center px-8 py-16">
-        <div className="w-full max-w-sm">
-          <div className="lg:hidden mb-10 text-center">
-            <span className="text-4xl">☕</span>
-            <p className="text-(--accent) font-semibold mt-2">SpotThePlace</p>
-          </div>
-          <h2 className="text-2xl font-bold text-(--text-primary) mb-1 tracking-tight">Bienvenue</h2>
-          <p className="text-(--text-secondary) mb-8 text-sm">Connectez-vous pour accéder à vos favoris</p>
-          {error && (
-            <div className="mb-5 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
-              {error}
-            </div>
-          )}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-(--text-secondary) mb-1.5">Email</label>
-              <input type="email" name="email" value={formData.email} onChange={handleChange}
-                placeholder="votre@email.com" className="input-dark" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-(--text-secondary) mb-1.5">Mot de passe</label>
-              <input type="password" name="password" value={formData.password} onChange={handleChange}
-                placeholder="••••••••" className="input-dark" required />
-            </div>
-            <button type="submit" disabled={loading}
-              className="w-full bg-(--accent) text-white py-3 rounded-xl font-semibold text-sm hover:bg-(--accent-light) transition-all duration-200 btn-press mt-2 disabled:opacity-50">
-              {loading ? "Connexion..." : "Se connecter"}
-            </button>
-          </form>
-          <p className="text-center text-(--text-muted) mt-6 text-sm">
-            Pas encore de compte ?{" "}
-            <a href="/register" className="text-(--accent) hover:text-(--accent-light) transition-colors font-medium">
-              S&apos;inscrire
-            </a>
-          </p>
-        </div>
-      </div>
+      {erreur && <p className="mt-6 text-meta text-rouge">{erreur}</p>}
+
+      <form onSubmit={envoyer} className="mt-8 flex flex-col gap-4">
+        <label>
+          <span className="mb-2 block text-meta text-gris">email</span>
+          <input
+            type="email"
+            name="email"
+            value={champs.email}
+            onChange={changer}
+            autoComplete="email"
+            required
+            className="w-full border border-trait bg-carte px-3 text-corps text-encre"
+          />
+        </label>
+
+        <label>
+          <span className="mb-2 block text-meta text-gris">mot de passe</span>
+          <input
+            type="password"
+            name="password"
+            value={champs.password}
+            onChange={changer}
+            autoComplete="current-password"
+            required
+            className="w-full border border-trait bg-carte px-3 text-corps text-encre"
+          />
+        </label>
+
+        <button type="submit" disabled={enCours} className="mt-2 flex items-center justify-center bg-plaque px-6 text-white disabled:opacity-60">
+          {enCours ? "connexion…" : "se connecter"}
+        </button>
+      </form>
+
+      <p className="mt-8 text-meta text-gris">
+        pas encore de compte ?{" "}
+        <Link to="/register" className="underline underline-offset-4">s&apos;inscrire</Link>
+      </p>
     </div>
   );
 }

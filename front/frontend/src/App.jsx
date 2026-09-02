@@ -24,7 +24,7 @@ function AdminRoute({ children }) {
   // Tant que le profil n'est pas revenu de l'API, on ne sait pas encore si la
   // personne a le droit d'être là : rediriger tout de suite éjecterait un
   // administrateur légitime à chaque rechargement.
-  if (chargement) return <p className="p-8 text-(--text-secondary)">Vérification de vos droits…</p>;
+  if (chargement) return <p className="p-8 text-corps text-gris">on vérifie vos droits…</p>;
   if (!connecte) return <Navigate to="/login" replace />;
   if (!estAdmin) return <Navigate to="/" replace />;
   return children;
@@ -46,7 +46,7 @@ function App() {
               <Route
                 path="/map"
                 element={
-                  <Suspense fallback={<p className="p-8 text-(--text-secondary)">Chargement de la carte…</p>}>
+                  <Suspense fallback={<div className="squelette m-6 h-96" />}>
                     <MapPage />
                   </Suspense>
                 }

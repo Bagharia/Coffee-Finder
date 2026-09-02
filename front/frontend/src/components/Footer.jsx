@@ -1,62 +1,45 @@
-export default function Footer() {
-  const navLinks = [
-    { label: "Accueil", href: "/" },
-    { label: "Tous les cafés", href: "/cafes" },
-    { label: "Matcha", href: "/category/Matcha" },
-    { label: "Bubble Tea", href: "/category/Bubble Tea" },
-    { label: "Carte", href: "/map" },
-  ];
+import { Link } from "react-router-dom";
 
+const LIENS = [
+  { label: "accueil", href: "/" },
+  { label: "toutes les adresses", href: "/cafes" },
+  { label: "café", href: "/category/Café" },
+  { label: "matcha", href: "/category/Matcha" },
+  { label: "bubble tea", href: "/category/Bubble Tea" },
+  { label: "thé", href: "/category/Thé" },
+  { label: "carte", href: "/map" }
+];
+
+export default function Footer() {
   return (
-    <footer className="bg-(--bg-section) border-t border-(--border) pt-14 pb-8">
-      <div className="max-w-7xl mx-auto px-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-3xl">☕</span>
-              <span className="text-xl font-bold text-(--text-primary)">SpotThePlace</span>
-            </div>
-            <p className="text-(--text-secondary) text-sm leading-relaxed">
-              Votre guide des meilleurs cafés parisiens — matcha, bubble tea & café de spécialité.
+    <footer className="bg-plaque px-6 py-12 text-white">
+      <div className="mx-auto flex max-w-5xl flex-col gap-10">
+        <div className="grid gap-10 md:grid-cols-2">
+          <div className="flex flex-col items-start gap-4">
+            {/* Un seul geste fort par zone : le pied de page a le sien. */}
+            <span className="plaque">spotheplace</span>
+            <p className="mesure text-meta text-white/80">
+              les cafés, salons de thé et bubble tea de paris, une adresse à la fois.
             </p>
           </div>
 
-          <div>
-            <h3 className="text-(--accent) text-xs font-semibold uppercase tracking-widest mb-5">
-              Navigation
-            </h3>
-            <ul className="space-y-3">
-              {navLinks.map(({ label, href }) => (
-                <li key={label}>
-                  <a href={href} className="text-(--text-secondary) hover:text-(--accent) transition-colors text-sm">
+          <nav>
+            <h2 className="mb-4 text-meta text-white/60">le guide</h2>
+            <ul className="flex flex-col">
+              {LIENS.map(({ label, href }) => (
+                <li key={href}>
+                  <Link to={href} className="flex items-center text-meta text-white/80 hover:text-white">
                     {label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
-          </div>
-
-          <div>
-            <h3 className="text-(--accent) text-xs font-semibold uppercase tracking-widest mb-5">
-              Paris, France
-            </h3>
-            <p className="text-(--text-secondary) text-sm leading-relaxed">
-              Explorez les 20 arrondissements parisiens et découvrez des adresses uniques pour chaque envie.
-            </p>
-            <p className="text-(--text-muted) text-sm mt-4">
-              🍵 Matcha · 🧋 Bubble Tea · ☕ Café
-            </p>
-          </div>
+          </nav>
         </div>
 
-        <div className="border-t border-(--border) pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
-          <p className="text-(--text-muted) text-sm">
-            © {new Date().getFullYear()} SpotThePlace — Tous droits réservés
-          </p>
-          <p className="text-(--text-muted) text-sm">
-            Fait avec ☕ à Paris
-          </p>
-        </div>
+        <p className="border-t border-white/20 pt-6 text-meta text-white/60">
+          © {new Date().getFullYear()} spotheplace — paris
+        </p>
       </div>
     </footer>
   );

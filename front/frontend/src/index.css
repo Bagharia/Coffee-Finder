@@ -1,333 +1,242 @@
 @import "tailwindcss";
 
 /* ============================================================
-   DESIGN SYSTEM — SpotThePlace  (Light Minimal)
+   SpotThePlace — jetons
+   Source de vérité : DA.md. Aucune valeur visuelle ne s'écrit
+   ailleurs que dans ce @theme.
    ============================================================ */
 
-:root {
-  /* === BACKGROUNDS — light cream scale === */
-  --bg-page:    #FAFAF7;
-  --bg-section: #F4F1EC;
-  --bg-card:    #FFFFFF;
-  --bg-muted:   #EDE9E2;
+@theme {
+  /* --- Couleurs ---------------------------------------------------------
+     Contrastes recalculés, pas repris de mémoire :
+       blanc sur plaque 10,79:1 · encre sur papier 12,95:1
+       gris sur papier   4,74:1 · rouge sur papier  5,70:1
+       blanc sur rouge   6,78:1 · rouge sur plaque  1,59:1 → interdit
+     Ne pas éclaircir le gris sans refaire le calcul : il passe AA de justesse. */
+  --color-plaque: #16453a;
+  --color-plaque-clair: #2c6153;
+  --color-papier: #f2ebd9;
+  --color-carte: #fffdf7;
+  --color-encre: #2a2418;
+  --color-gris: #6e6753;
+  --color-trait: #d6cbae;
+  --color-rouge: #a82f26;
 
-  /* === ACCENT — warm terracotta/matcha soft === */
-  --accent:       #6B8F5E;
-  --accent-light: #8BAF7A;
-  --accent-dim:   #4A6B40;
+  /* --- Familles ---------------------------------------------------------
+     Instrument Serif n'existe qu'en une graisse : jamais de font-bold dessus,
+     le navigateur la synthétiserait. */
+  --font-reperage: "Archivo", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-voix: "Instrument Serif", ui-serif, Georgia, "Times New Roman", serif;
 
-  /* === CATEGORY COLORS === */
-  --matcha:       #5A7A4A;
-  --matcha-light: #7DAA6A;
-  --bbt:          #8B5CF6;
-  --bbt-light:    #A78BFA;
-  --coffee:       #92400E;
-  --coffee-light: #B45309;
-  --tea:          #B45309;
-  --tea-light:    #D97706;
+  /* --- Échelle ---------------------------------------------------------- */
+  --text-titre: clamp(2.5rem, 7vw, 4.5rem);
+  --text-titre--line-height: 1.02;
+  --text-titre--letter-spacing: -0.02em;
+  --text-titre--font-weight: 600;
 
-  /* === TEXT SCALE === */
-  --text-primary:   #1A1A1A;
-  --text-secondary: #6B6B6B;
-  --text-muted:     #A8A8A8;
-  --text-on-accent: #FFFFFF;
+  --text-section: 1.75rem;
+  --text-section--line-height: 1.15;
+  --text-section--font-weight: 500;
 
-  /* === BORDERS === */
-  --border:       rgba(0, 0, 0, 0.10);
-  --border-light: rgba(0, 0, 0, 0.06);
+  --text-nom: 1.3125rem;
+  --text-nom--line-height: 1.2;
+  --text-nom--font-weight: 500;
 
-  /* === LEGACY ALIASES === */
-  --gold:          #6B8F5E;
-  --gold-light:    #8BAF7A;
-  --gold-dim:      #4A6B40;
-  --text-on-gold:  #FFFFFF;
-  --bg-deep:       #F4F1EC;
-  --bg-rich:       #FAFAF7;
-  --bg-dark:       #EDE9E2;
-  --bg-mid:        #E8E4DC;
-  --glass-bg:      rgba(255,255,255,0.8);
-  --glass-border:  rgba(0,0,0,0.08);
-  --glass-hover:   rgba(255,255,255,0.95);
-  --primary:       #6B8F5E;
-  --secondary:     #5A7A4A;
-  --background:    #FAFAF7;
-  --surface:       #FFFFFF;
-  --text:          #1A1A1A;
-  --text-light:    #6B6B6B;
-  --text-on-primary: #FFFFFF;
-  --border-light:  rgba(0,0,0,0.06);
+  --text-corps: 1.0625rem;
+  --text-corps--line-height: 1.6;
+
+  --text-voix: 1.5rem;
+  --text-voix--line-height: 1.35;
+
+  --text-meta: 0.8125rem;
+  --text-meta--line-height: 1.4;
+  --text-meta--font-weight: 500;
 }
 
 /* ============================================================
    BASE
    ============================================================ */
-body {
-  background-color: var(--bg-page);
-  color: var(--text-primary);
-  font-family: system-ui, -apple-system, sans-serif;
+
+@layer base {
+  body {
+    background-color: var(--color-papier);
+    color: var(--color-encre);
+    font-family: var(--font-reperage);
+    font-size: var(--text-corps);
+    line-height: 1.6;
+  }
+
+  /* Le bas de casse est une règle d'écriture, pas une transformation CSS :
+     forcer text-transform écraserait les noms propres des adresses. */
+
+  /* Le focus se voit, sur les deux fonds. Le vert tient 9,07:1 sur papier. */
+  :focus-visible {
+    outline: 2px solid var(--color-plaque);
+    outline-offset: 2px;
+  }
+
+  .bg-plaque :focus-visible,
+  .plaque :focus-visible {
+    outline-color: #fff;
+  }
+
+  /* Le site s'utilise debout, en marchant : rien en dessous de 44 px. */
+  button,
+  a[href],
+  input,
+  select,
+  textarea,
+  [role="button"] {
+    min-height: 44px;
+  }
+
+  /* Sauf les cibles à l'intérieur d'une ligne de texte, où 44 px casserait
+     l'interligne — elles restent cliquables par leur conteneur. */
+  p a[href],
+  li a[href] {
+    min-height: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 /* ============================================================
-   KEYFRAMES
+   LA PLAQUE — le seul geste fort. Un seul par zone d'écran.
    ============================================================ */
 
-@keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateY(24px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+@layer components {
+  /* Le filet blanc est un box-shadow interne : il ne prend pas de place et ne
+     décale rien, contrairement à une bordure ou à un élément intercalé.
+     Le premier calque couvre les 3 px du bord, le second laisse apparaître
+     1 px de blanc juste derrière. */
+  .plaque {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 0.5rem 0.875rem;
+    border-radius: 2px;
+    background-color: var(--color-plaque);
+    box-shadow:
+      inset 0 0 0 3px var(--color-plaque),
+      inset 0 0 0 4px #fff;
+    color: #fff;
+    font-family: var(--font-reperage);
+    font-size: var(--text-meta);
+    font-weight: 500;
+    line-height: 1.4;
+  }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
+  a.plaque:hover,
+  button.plaque:hover {
+    background-color: var(--color-plaque-clair);
+    box-shadow:
+      inset 0 0 0 3px var(--color-plaque-clair),
+      inset 0 0 0 4px #fff;
+  }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0px) rotate(-1deg); }
-  50%       { transform: translateY(-12px) rotate(1deg); }
-}
+  /* En-tête de fiche : même objet, corps du nom d'adresse, filet à 4 px. */
+  .plaque-lg {
+    padding: 0.75rem 1.125rem;
+    box-shadow:
+      inset 0 0 0 4px var(--color-plaque),
+      inset 0 0 0 5px #fff;
+    font-size: var(--text-nom);
+    line-height: 1.2;
+  }
 
-@keyframes gradientShift {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
+  /* Sélection sur la carte. Rien ne bouge : pas d'agrandissement, pas d'ombre,
+     pas de rebond. Une seule active à la fois. */
+  .plaque-active {
+    background-color: var(--color-rouge);
+    box-shadow:
+      inset 0 0 0 3px var(--color-rouge),
+      inset 0 0 0 4px #fff;
+  }
 
-@keyframes scrollInfinite {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
+  /* Marqueur de carte : le nom en toutes lettres, jamais une épingle. */
+  .plaque-carte {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-@keyframes skeletonPulse {
-  0%, 100% { opacity: 0.4; }
-  50%       { opacity: 0.8; }
-}
+  /* ==========================================================
+     LA VOIX — les mots de Wendy, et rien d'autre.
+     Pas de guillemets, pas d'encadré, pas de fond teinté :
+     la typographie est déjà la citation.
+     ========================================================== */
+  .voix {
+    max-width: 46ch;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-trait);
+    font-family: var(--font-voix);
+    font-size: var(--text-voix);
+    font-style: italic;
+    font-weight: 400;
+    line-height: 1.35;
+  }
 
-@keyframes press {
-  0%   { transform: scale(1); }
-  50%  { transform: scale(0.96); }
-  100% { transform: scale(1); }
-}
+  /* ==========================================================
+     IMAGE DE REPLI — le cas le plus fréquent tant que la base
+     n'est pas remplie. Une adresse sans photo doit avoir l'air
+     assumée, pas cassée.
+     ========================================================== */
+  .image-repli {
+    display: flex;
+    align-items: flex-end;
+    width: 100%;
+    height: 100%;
+    padding: 0.5rem 0.875rem;
+    background-color: var(--color-plaque);
+    color: #fff;
+    font-family: var(--font-reperage);
+    font-size: var(--text-meta);
+    font-weight: 500;
+    line-height: 1.4;
+  }
 
-@keyframes slideInRight {
-  from { transform: translateX(100%); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
-}
+  /* ==========================================================
+     SQUELETTE — l'état de chargement. Forme et place exactes du
+     contenu à venir, sans balayage : il annonce ce qui arrive et
+     empêche la page de sauter.
+     ========================================================== */
+  .squelette {
+    border-radius: 2px;
+    background-color: var(--color-trait);
+  }
 
-@keyframes scrollPulse {
-  0%, 100% { opacity: 0.3; }
-  50%       { opacity: 0.8; }
-}
+  /* ==========================================================
+     LA FEUILLE DE LA CARTE — le seul mouvement du site.
+     Repliée, elle laisse dépasser sa poignée ; dépliée, elle
+     remonte. Le bloc prefers-reduced-motion plus haut la fige.
+     ========================================================== */
+  .feuille {
+    transform: translateY(calc(100% - 3.5rem));
+    transition: transform 220ms ease-out;
+  }
 
-/* ============================================================
-   ANIMATION UTILITIES
-   ============================================================ */
+  .feuille-ouverte {
+    transform: translateY(0);
+  }
 
-.anim-fade-up {
-  animation: fadeSlideUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
+  /* Leaflet pose ses propres fonds blancs : on les ramène au papier. */
+  .leaflet-container {
+    background-color: var(--color-papier);
+    font-family: var(--font-reperage);
+  }
 
-.anim-fade-in {
-  animation: fadeIn 0.4s ease both;
-}
-
-.animate-float {
-  animation: float 5s ease-in-out infinite;
-}
-
-.animate-gradient-text {
-  background: linear-gradient(135deg, #1A1A1A, #6B8F5E, #5A7A4A, #1A1A1A);
-  background-size: 300% 300%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: gradientShift 6s ease infinite;
-}
-
-.animate-scroll-infinite {
-  animation: scrollInfinite 28s linear infinite;
-}
-
-.carousel-track:hover .animate-scroll-infinite {
-  animation-play-state: paused;
-}
-
-/* Scroll-triggered reveals */
-.reveal {
-  opacity: 0;
-  transform: translateY(24px);
-  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
-              transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.reveal.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.reveal-delay-1 { transition-delay: 0.08s; }
-.reveal-delay-2 { transition-delay: 0.16s; }
-.reveal-delay-3 { transition-delay: 0.24s; }
-.reveal-delay-4 { transition-delay: 0.32s; }
-
-.skeleton {
-  background: var(--bg-muted);
-  border-radius: 8px;
-  animation: skeletonPulse 1.4s ease-in-out infinite;
-}
-
-.btn-press:active {
-  animation: press 0.15s ease;
-}
-
-.slide-in-right {
-  animation: slideInRight 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.scroll-indicator {
-  animation: scrollPulse 2s ease-in-out infinite;
-}
-
-/* ============================================================
-   CARD
-   ============================================================ */
-
-.glass-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  transition: background 0.2s ease,
-              border-color 0.2s ease,
-              transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
-              box-shadow 0.3s ease;
-}
-
-.glass-card:hover {
-  border-color: rgba(107, 143, 94, 0.3);
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.10);
-}
-
-/* ============================================================
-   FORM INPUTS
-   ============================================================ */
-
-.input-dark {
-  background: #FFFFFF;
-  border: 1.5px solid var(--border);
-  color: var(--text-primary);
-  border-radius: 10px;
-  padding: 11px 14px;
-  outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  width: 100%;
-}
-
-.input-dark::placeholder {
-  color: var(--text-muted);
-}
-
-.input-dark:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(107, 143, 94, 0.15);
-}
-
-.input-form {
-  background: #FFFFFF;
-  border: 1.5px solid var(--border);
-  color: var(--text-primary);
-  border-radius: 10px;
-  padding: 11px 14px;
-  outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.input-form::placeholder {
-  color: var(--text-muted);
-}
-
-.input-form:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(107, 143, 94, 0.15);
-}
-
-/* ============================================================
-   NAVBAR SCROLL STATES
-   ============================================================ */
-
-.navbar-transparent {
-  background: rgba(250, 250, 247, 0.85);
-  border-color: transparent;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.navbar-solid {
-  background: rgba(250, 250, 247, 0.95);
-  border-color: var(--border);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 1px 16px rgba(0,0,0,0.06);
-}
-
-/* ============================================================
-   NAV LINK UNDERLINE
-   ============================================================ */
-
-.nav-underline {
-  position: relative;
-}
-
-.nav-underline::after {
-  content: '';
-  position: absolute;
-  bottom: -3px;
-  left: 0;
-  width: 0;
-  height: 1.5px;
-  background: var(--accent);
-  transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.nav-underline:hover::after {
-  width: 100%;
-}
-
-/* ============================================================
-   CATEGORY HERO GRADIENTS (light versions)
-   ============================================================ */
-
-.hero-matcha {
-  background: linear-gradient(135deg, #EBF2E8 0%, #D4E8CC 50%, #F4F1EC 100%);
-}
-
-.hero-bbt {
-  background: linear-gradient(135deg, #EDE8F6 0%, #DDD0F5 50%, #F4F1EC 100%);
-}
-
-.hero-coffee {
-  background: linear-gradient(135deg, #F5EDE4 0%, #EDD9C4 50%, #F4F1EC 100%);
-}
-
-.hero-tea {
-  background: linear-gradient(135deg, #F5EFE0 0%, #EDE0C0 50%, #F4F1EC 100%);
-}
-
-/* ============================================================
-   CUSTOM SCROLLBAR
-   ============================================================ */
-
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--bg-section);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--bg-muted);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--accent);
+  /* Le corps de texte reste sous 70 caractères par ligne. */
+  .mesure {
+    max-width: 70ch;
+  }
 }

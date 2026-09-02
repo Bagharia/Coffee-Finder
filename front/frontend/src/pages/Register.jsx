@@ -1,98 +1,123 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
-const IMG = "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?q=80&w=2069&auto=format&fit=crop";
+// Aligné sur ce qu'exige l'API : la refuser côté serveur après l'avoir acceptée
+// côté front, c'est faire remplir un formulaire pour rien.
+const MOT_DE_PASSE_MIN = 8;
 
 export default function Register() {
   const navigate = useNavigate();
   const { inscription } = useAuth();
-  const [formData, setFormData] = useState({ username: "", email: "", password: "", confirmPassword: "" });
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [champs, setChamps] = useState({ username: "", email: "", password: "", confirmation: "" });
+  const [erreur, setErreur] = useState("");
+  const [enCours, setEnCours] = useState(false);
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const changer = (e) => setChamps({ ...champs, [e.target.name]: e.target.value });
 
-  const handleSubmit = async (e) => {
+  const envoyer = async (e) => {
     e.preventDefault();
-    setError("");
-    if (!formData.username || !formData.email || !formData.password) { setError("Tous les champs sont requis"); return; }
-    if (formData.password !== formData.confirmPassword) { setError("Les mots de passe ne correspondent pas"); return; }
-    if (formData.password.length < 8) { setError("Le mot de passe doit contenir au moins 8 caractères"); return; }
+    setErreur("");
+
+    if (!champs.username || !champs.email || !champs.password) {
+      setErreur("tous les champs sont nécessaires.");
+      return;
+    }
+    if (champs.password !== champs.confirmation) {
+      setErreur("les deux mots de passe ne correspondent pas.");
+      return;
+    }
+    if (champs.password.length < MOT_DE_PASSE_MIN) {
+      setErreur(`le mot de passe fait au moins ${MOT_DE_PASSE_MIN} caractères.`);
+      return;
+    }
+
+    setEnCours(true);
     try {
-      setLoading(true);
-      await inscription({ username: formData.username, email: formData.email, password: formData.password });
+      await inscription({
+        username: champs.username,
+        email: champs.email,
+        password: champs.password
+      });
       navigate("/");
     } catch (err) {
-      setError(err.message || "Erreur lors de l'inscription");
+      setErreur(err.message);
     } finally {
-      setLoading(false);
+      setEnCours(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen bg-(--bg-page)">
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        <img src={IMG} alt="Coffee shop" className="absolute inset-0 w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent" />
-        <div className="relative z-10 flex flex-col justify-end p-14 pb-16">
-          <p className="text-white/70 text-sm font-semibold tracking-widest uppercase mb-4">SpotThePlace</p>
-          <h2 className="text-3xl font-bold text-white leading-tight mb-3">
-            Rejoignez la<br />communauté parisienne
-          </h2>
-          <p className="text-white/60 text-base leading-relaxed">
-            Sauvegardez vos cafés favoris,<br />partagez vos découvertes
-          </p>
-        </div>
-      </div>
+    <div className="mx-auto max-w-sm px-6 py-16">
+      <h1 className="text-section text-encre">créer un compte</h1>
+      <p className="mt-1 text-meta text-gris">pour garder vos adresses et donner votre avis.</p>
 
-      <div className="flex-1 flex items-center justify-center px-8 py-16">
-        <div className="w-full max-w-sm">
-          <div className="lg:hidden mb-10 text-center">
-            <span className="text-4xl">☕</span>
-            <p className="text-(--accent) font-semibold mt-2">SpotThePlace</p>
-          </div>
-          <h2 className="text-2xl font-bold text-(--text-primary) mb-1 tracking-tight">Créer un compte</h2>
-          <p className="text-(--text-secondary) mb-8 text-sm">Rejoignez-nous et découvrez Paris autrement</p>
-          {error && (
-            <div className="mb-5 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
-              {error}
-            </div>
-          )}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-(--text-secondary) mb-1.5">Nom d'utilisateur</label>
-              <input type="text" name="username" value={formData.username} onChange={handleChange}
-                placeholder="votre_pseudo" className="input-dark" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-(--text-secondary) mb-1.5">Email</label>
-              <input type="email" name="email" value={formData.email} onChange={handleChange}
-                placeholder="votre@email.com" className="input-dark" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-(--text-secondary) mb-1.5">Mot de passe</label>
-              <input type="password" name="password" value={formData.password} onChange={handleChange}
-                placeholder="••••••••" className="input-dark" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-(--text-secondary) mb-1.5">Confirmer le mot de passe</label>
-              <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange}
-                placeholder="••••••••" className="input-dark" required />
-            </div>
-            <button type="submit" disabled={loading}
-              className="w-full bg-(--accent) text-white py-3 rounded-xl font-semibold text-sm hover:bg-(--accent-light) transition-all duration-200 btn-press mt-2 disabled:opacity-50">
-              {loading ? "Inscription..." : "S'inscrire"}
-            </button>
-          </form>
-          <p className="text-center text-(--text-muted) mt-6 text-sm">
-            Déjà un compte ?{" "}
-            <a href="/login" className="text-(--accent) hover:text-(--accent-light) transition-colors font-medium">
-              Se connecter
-            </a>
-          </p>
-        </div>
-      </div>
+      {erreur && <p className="mt-6 text-meta text-rouge">{erreur}</p>}
+
+      <form onSubmit={envoyer} className="mt-8 flex flex-col gap-4">
+        <label>
+          <span className="mb-2 block text-meta text-gris">nom d&apos;utilisateur</span>
+          <input
+            type="text"
+            name="username"
+            value={champs.username}
+            onChange={changer}
+            autoComplete="username"
+            required
+            className="w-full border border-trait bg-carte px-3 text-corps text-encre"
+          />
+        </label>
+
+        <label>
+          <span className="mb-2 block text-meta text-gris">email</span>
+          <input
+            type="email"
+            name="email"
+            value={champs.email}
+            onChange={changer}
+            autoComplete="email"
+            required
+            className="w-full border border-trait bg-carte px-3 text-corps text-encre"
+          />
+        </label>
+
+        <label>
+          <span className="mb-2 block text-meta text-gris">
+            mot de passe, {MOT_DE_PASSE_MIN} caractères minimum
+          </span>
+          <input
+            type="password"
+            name="password"
+            value={champs.password}
+            onChange={changer}
+            autoComplete="new-password"
+            required
+            className="w-full border border-trait bg-carte px-3 text-corps text-encre"
+          />
+        </label>
+
+        <label>
+          <span className="mb-2 block text-meta text-gris">confirmation</span>
+          <input
+            type="password"
+            name="confirmation"
+            value={champs.confirmation}
+            onChange={changer}
+            autoComplete="new-password"
+            required
+            className="w-full border border-trait bg-carte px-3 text-corps text-encre"
+          />
+        </label>
+
+        <button type="submit" disabled={enCours} className="mt-2 flex items-center justify-center bg-plaque px-6 text-white disabled:opacity-60">
+          {enCours ? "création…" : "créer mon compte"}
+        </button>
+      </form>
+
+      <p className="mt-8 text-meta text-gris">
+        déjà un compte ?{" "}
+        <Link to="/login" className="underline underline-offset-4">se connecter</Link>
+      </p>
     </div>
   );
 }

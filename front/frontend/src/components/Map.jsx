@@ -1,190 +1,173 @@
-import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-import { cafesAPI, LIMITE_MAX } from '../services/api';
+import { useEffect, useMemo, useState } from "react";
+import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { cafesAPI, LIMITE_MAX } from "../services/api";
+import { coordonnees, estPlacable, regrouperMarqueurs } from "../utils/regrouperMarqueurs";
+import MapFiltres from "./MapFiltres";
+import MapFeuille from "./MapFeuille";
 
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
+const CENTRE_PARIS = [48.8566, 2.3522];
 
-function AutoCenter({ cafes }) {
+// Échappe le nom avant de l'injecter dans le HTML du marqueur : il vient de la
+// base, et Leaflet ne fait pas de rendu React ici.
+const echapper = (texte) =>
+  String(texte).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
+  );
+
+/** Un marqueur est une plaque portant le nom, jamais une épingle générique. */
+function iconePlaque(libelle, active) {
+  return L.divIcon({
+    className: "",
+    html: `<span class="plaque plaque-carte${active ? " plaque-active" : ""}">${echapper(libelle)}</span>`,
+    // Ancrée par son bord bas-gauche, comme une plaque posée sur la façade.
+    iconAnchor: [0, 0]
+  });
+}
+
+function Marqueurs({ adresses, selectionId, onSelectionner }) {
   const map = useMap();
+
+  // Le regroupement dépend du cadre visible, que Leaflet ne notifie que par
+  // événement. On incrémente un compteur à chaque déplacement et le calcul se
+  // refait au rendu : l'effet ne fait qu'écouter, il ne pose aucun état.
+  const [deplacements, setDeplacements] = useState(0);
+
   useEffect(() => {
-    if (cafes.length > 0) {
-      const bounds = L.latLngBounds(cafes.map(c => [parseFloat(c.latitude), parseFloat(c.longitude)]));
-      map.fitBounds(bounds, { padding: [40, 40] });
-    } else {
-      map.setView([48.8566, 2.3522], 12);
+    const signaler = () => setDeplacements((n) => n + 1);
+    map.on("moveend", signaler);
+    map.on("zoomend", signaler);
+    return () => {
+      map.off("moveend", signaler);
+      map.off("zoomend", signaler);
+    };
+  }, [map]);
+
+  const groupes = useMemo(
+    () => regrouperMarqueurs(map, adresses),
+    // `deplacements` n'entre pas dans le calcul, il en déclenche la reprise.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [map, adresses, deplacements]
+  );
+
+  return groupes.map(({ cle, position, adresses: contenu }) => {
+    const groupe = contenu.length > 1;
+    const libelle = groupe ? `${contenu.length} adresses` : contenu[0].nom;
+    const active = !groupe && contenu[0].id === selectionId;
+
+    return (
+      <Marker
+        key={cle}
+        position={position}
+        icon={iconePlaque(libelle, active)}
+        eventHandlers={{
+          click: () => {
+            if (groupe) {
+              map.flyTo(position, Math.min(map.getZoom() + 2, 18));
+              return;
+            }
+            onSelectionner(contenu[0]);
+          }
+        }}
+      />
+    );
+  });
+}
+
+/** Recadre sur les adresses affichées, sans jamais suivre l'utilisateur. */
+function Recadrage({ adresses }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (adresses.length === 0) {
+      map.setView(CENTRE_PARIS, 12);
+      return;
     }
-  }, [cafes, map]);
+    map.fitBounds(L.latLngBounds(adresses.map(coordonnees)), { padding: [48, 48] });
+  }, [adresses, map]);
+
   return null;
 }
 
-const SPECIALITES = ['Café', 'Matcha', 'Bubble Tea', 'Thé'];
-
-const BADGE = {
-  Matcha:       'bg-[rgba(90,122,74,0.12)] text-[#4A6B40]',
-  'Bubble Tea': 'bg-[rgba(139,92,246,0.10)] text-[#7C3AED]',
-  Café:         'bg-[rgba(146,64,14,0.10)] text-[#92400E]',
-  Thé:          'bg-[rgba(180,83,9,0.10)] text-[#B45309]',
-};
-
 export default function Map() {
-  const [allCafes, setAllCafes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [filters, setFilters] = useState({ specialite: '', wifi: false, arrondissement: '' });
+  const [adresses, setAdresses] = useState([]);
+  const [chargement, setChargement] = useState(true);
+  const [erreur, setErreur] = useState(null);
+  const [filtres, setFiltres] = useState({ specialite: "", wifi: false, arrondissement: "" });
+  const [selection, setSelection] = useState(null);
+  const [feuilleOuverte, setFeuilleOuverte] = useState(false);
 
   useEffect(() => {
     cafesAPI.getAll({ limite: LIMITE_MAX })
-      .then(reponse => setAllCafes(reponse.donnees))
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false));
+      .then((reponse) => setAdresses(reponse.donnees))
+      .catch((err) => setErreur(err.message))
+      .finally(() => setChargement(false));
   }, []);
 
-  const matchesFilters = (c) => {
-    if (filters.specialite && !c.specialite?.split(',').map(s => s.trim()).includes(filters.specialite)) return false;
-    if (filters.wifi && c.wifi !== 1) return false;
-    if (filters.arrondissement && c.arrondissement !== filters.arrondissement) return false;
+  const retenues = useMemo(() => adresses.filter((cafe) => {
+    if (filtres.specialite) {
+      const specialites = cafe.specialite?.split(",").map((s) => s.trim()) ?? [];
+      if (!specialites.includes(filtres.specialite)) return false;
+    }
+    if (filtres.wifi && cafe.wifi !== 1) return false;
+    if (filtres.arrondissement && cafe.arrondissement !== filtres.arrondissement) return false;
     return true;
+  }), [adresses, filtres]);
+
+  const placables = useMemo(() => retenues.filter(estPlacable), [retenues]);
+
+  const selectionner = (cafe) => {
+    setSelection(cafe);
+    setFeuilleOuverte(true);
   };
 
-  // Cafés visibles sur la carte (ont des coords ET matchent les filtres)
-  const cafes = allCafes.filter(c => c.latitude && c.longitude && matchesFilters(c));
-  // Compteur total (matchent les filtres, avec ou sans coords)
-  const totalFiltered = allCafes.filter(matchesFilters).length;
-
-  const defaultCenter = [48.8566, 2.3522];
-
-  if (loading) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-(--bg-section) rounded-2xl">
-        <p className="text-(--text-secondary)">Chargement de la carte...</p>
-      </div>
-    );
+  if (chargement) {
+    return <div className="squelette h-full w-full" />;
   }
 
-  if (error) {
+  if (erreur) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-(--bg-section) rounded-2xl">
-        <p className="text-red-500">{error}</p>
+      <div className="flex h-full w-full items-center justify-center bg-papier p-8">
+        <p className="mesure text-corps text-encre">
+          {erreur} la carte revient en rafraîchissant la page.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="w-full h-full flex flex-col">
-      {/* Filter bar */}
-      <div className="flex flex-wrap gap-2 p-3 bg-white border-b border-(--border) shrink-0">
-        {/* Spécialité pills */}
-        <div className="flex gap-1.5 flex-wrap">
-          <button
-            onClick={() => setFilters(f => ({ ...f, specialite: '' }))}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
-              !filters.specialite
-                ? 'bg-(--accent) text-white'
-                : 'bg-(--bg-section) text-(--text-secondary) hover:bg-(--bg-muted)'
-            }`}
-          >
-            Tous
-          </button>
-          {SPECIALITES.map(s => (
-            <button
-              key={s}
-              onClick={() => setFilters(f => ({ ...f, specialite: f.specialite === s ? '' : s }))}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
-                filters.specialite === s
-                  ? 'bg-(--accent) text-white'
-                  : `${BADGE[s] || 'bg-(--bg-section) text-(--text-secondary)'} hover:opacity-80`
-              }`}
-            >
-              {s === 'Café' ? '☕' : s === 'Matcha' ? '🍵' : s === 'Bubble Tea' ? '🧋' : '🫖'} {s}
-            </button>
-          ))}
-        </div>
+    <div className="flex h-full w-full flex-col">
+      <MapFiltres filtres={filtres} onChange={setFiltres} total={retenues.length} />
 
-        {/* Séparateur */}
-        <div className="w-px bg-(--border) mx-1 hidden sm:block" />
+      <div className="relative min-h-0 flex-1 overflow-hidden">
+        {placables.length === 0 ? (
+          <div className="flex h-full items-center justify-center bg-papier p-8">
+            <p className="mesure text-corps text-encre">
+              aucune adresse à placer avec ces filtres. élargir la recherche, ou proposer la vôtre.
+            </p>
+          </div>
+        ) : (
+          <MapContainer center={CENTRE_PARIS} zoom={12} scrollWheelZoom style={{ height: "100%", width: "100%" }}>
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <Recadrage adresses={placables} />
+            <Marqueurs
+              adresses={placables}
+              selectionId={selection?.id}
+              onSelectionner={selectionner}
+            />
+          </MapContainer>
+        )}
 
-        {/* Arrondissement */}
-        <select
-          value={filters.arrondissement}
-          onChange={e => setFilters(f => ({ ...f, arrondissement: e.target.value }))}
-          className="text-xs border border-(--border) rounded-lg px-2 py-1 bg-white text-(--text-primary) outline-none focus:border-(--accent)"
-        >
-          <option value="">Tous arrondissements</option>
-          {Array.from({ length: 20 }, (_, i) => {
-            const n = i + 1;
-            const label = n === 1 ? '1er' : `${n}e`;
-            return <option key={label} value={label}>{label}</option>;
-          })}
-        </select>
-
-        {/* WiFi toggle */}
-        <button
-          onClick={() => setFilters(f => ({ ...f, wifi: !f.wifi }))}
-          className={`px-3 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1 ${
-            filters.wifi
-              ? 'bg-(--accent) text-white'
-              : 'bg-(--bg-section) text-(--text-secondary) hover:bg-(--bg-muted)'
-          }`}
-        >
-          📶 WiFi
-        </button>
-
-        {/* Compteur */}
-        <span className="ml-auto text-xs text-(--text-muted) self-center shrink-0">
-          {totalFiltered} café{totalFiltered > 1 ? 's' : ''}
-        </span>
-      </div>
-
-      {/* Map */}
-      <div className="flex-1 min-h-0">
-        <MapContainer
-          center={defaultCenter}
-          zoom={12}
-          style={{ height: '100%', width: '100%' }}
-          scrollWheelZoom={true}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-
-          <AutoCenter cafes={cafes} />
-
-          {cafes.map(cafe => (
-            <Marker key={cafe.id} position={[parseFloat(cafe.latitude), parseFloat(cafe.longitude)]}>
-              <Popup>
-                <div style={{ minWidth: '160px' }}>
-                  <p style={{ fontWeight: '700', fontSize: '14px', marginBottom: '4px' }}>{cafe.nom}</p>
-                  {cafe.arrondissement && (
-                    <p style={{ fontSize: '12px', color: '#6B6B6B', marginBottom: '2px' }}>📍 {cafe.arrondissement}</p>
-                  )}
-                  {cafe.specialite && (
-                    <p style={{ fontSize: '12px', color: '#6B6B6B', marginBottom: '6px' }}>{cafe.specialite}</p>
-                  )}
-                  {cafe.wifi === 1 && (
-                    <span style={{ fontSize: '11px', background: 'rgba(107,143,94,0.12)', color: '#4A6B40', padding: '2px 8px', borderRadius: '999px', marginBottom: '6px', display: 'inline-block' }}>
-                      📶 WiFi
-                    </span>
-                  )}
-                  <br />
-                  <a
-                    href={`/cafe/${cafe.id}`}
-                    style={{ display: 'inline-block', marginTop: '6px', fontSize: '12px', fontWeight: '600', color: '#6B8F5E', textDecoration: 'none' }}
-                  >
-                    Voir le café →
-                  </a>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-        </MapContainer>
+        <MapFeuille
+          cafe={selection}
+          ouverte={feuilleOuverte}
+          onBasculer={() => setFeuilleOuverte((ouverte) => !ouverte)}
+          onFermer={() => { setFeuilleOuverte(false); setSelection(null); }}
+        />
       </div>
     </div>
   );

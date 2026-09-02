@@ -1,137 +1,117 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CafeCard from "../components/CafeCard";
 import Filters from "../components/Filters";
 import { cafesAPI, LIMITE_MAX } from "../services/api";
 
+const NOUVEAUTE_MS = 30 * 24 * 60 * 60 * 1000;
+
+const FILTRES_VIDES = {
+  arrondissement: "", prix: "", ambiance: "", wifi: "", prises: "", travailler: "", nouveautes: ""
+};
+
 export default function CafePage() {
   const navigate = useNavigate();
   const [cafes, setCafes] = useState([]);
-  const [filteredCafes, setFilteredCafes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [randomLoading, setRandomLoading] = useState(false);
-
-  const goRandom = async () => {
-    setRandomLoading(true);
-    try {
-      const cafe = await cafesAPI.getRandom();
-      navigate(`/cafe/${cafe.id}`);
-    } catch {}
-    setRandomLoading(false);
-  };
+  const [filtres, setFiltres] = useState(FILTRES_VIDES);
+  const [chargement, setChargement] = useState(true);
+  const [erreur, setErreur] = useState(null);
+  const [tirageEnCours, setTirageEnCours] = useState(false);
 
   useEffect(() => {
     cafesAPI.getAll({ limite: LIMITE_MAX })
-      .then((reponse) => { setCafes(reponse.donnees); setFilteredCafes(reponse.donnees); })
-      .catch((err) => { console.error(err); setError(err.message); })
-      .finally(() => setLoading(false));
+      .then((reponse) => setCafes(reponse.donnees))
+      .catch((err) => setErreur(err.message))
+      .finally(() => setChargement(false));
   }, []);
 
-  useEffect(() => {
-    if (!loading) {
-      const els = document.querySelectorAll(".reveal");
-      const io = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((e) => {
-            if (e.isIntersecting) { e.target.classList.add("visible"); io.unobserve(e.target); }
-          });
-        },
-        { threshold: 0.1 }
-      );
-      els.forEach((el) => io.observe(el));
-      return () => io.disconnect();
+  // Le filtrage est local : les adresses sont déjà là, un aller-retour réseau
+  // à chaque case cochée n'apporterait rien.
+  const retenues = useMemo(() => cafes.filter((cafe) => {
+    if (filtres.arrondissement && cafe.arrondissement !== filtres.arrondissement) return false;
+    if (filtres.prix && cafe.prix !== filtres.prix) return false;
+    if (filtres.ambiance && !cafe.ambiance?.toLowerCase().includes(filtres.ambiance.toLowerCase())) return false;
+    if (filtres.wifi && cafe.wifi !== 1) return false;
+    if (filtres.prises && cafe.prises !== 1) return false;
+    if (filtres.travailler && cafe.travailler !== 1) return false;
+    if (filtres.nouveautes) {
+      if (!cafe.created_at) return false;
+      if (Date.now() - new Date(cafe.created_at).getTime() >= NOUVEAUTE_MS) return false;
     }
-  }, [loading, filteredCafes]);
+    return true;
+  }), [cafes, filtres]);
 
-  const handleFilterChange = (filters) => {
-    let filtered = [...cafes];
-    if (filters.arrondissement) filtered = filtered.filter((c) => c.arrondissement === filters.arrondissement);
-    if (filters.prix) filtered = filtered.filter((c) => c.prix === filters.prix);
-    if (filters.ambiance) filtered = filtered.filter((c) => c.ambiance?.toLowerCase().includes(filters.ambiance.toLowerCase()));
-    if (filters.wifi) filtered = filtered.filter((c) => c.wifi === 1);
-    if (filters.prises) filtered = filtered.filter((c) => c.prises === 1);
-    if (filters.travailler) filtered = filtered.filter((c) => c.travailler === 1);
-    if (filters.nouveautes) filtered = filtered.filter((c) => {
-      if (!c.created_at) return false;
-      return (Date.now() - new Date(c.created_at).getTime()) < 30 * 24 * 60 * 60 * 1000;
-    });
-    setFilteredCafes(filtered);
+  const tirerAuSort = async () => {
+    setTirageEnCours(true);
+    try {
+      const cafe = await cafesAPI.getRandom();
+      navigate(`/cafe/${cafe.id}`);
+    } catch (err) {
+      setErreur(err.message);
+    } finally {
+      setTirageEnCours(false);
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-(--bg-page) pt-20">
-        <div className="bg-(--bg-section) border-b border-(--border) px-8 py-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="skeleton h-9 w-48 rounded-xl mb-3" />
-            <div className="skeleton h-4 w-32 rounded-lg" />
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto px-8 py-10">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            <div className="space-y-4">
-              {Array.from({ length: 5 }, (_, i) => <div key={i} className="skeleton h-10 rounded-xl" />)}
-            </div>
-            <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-              {Array.from({ length: 9 }, (_, i) => <div key={i} className="skeleton h-64 rounded-2xl" />)}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-(--bg-page) flex items-center justify-center">
-        <p className="text-red-500 text-lg">{error}</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-(--bg-page) pt-16">
-      <div className="bg-(--bg-section) border-b border-(--border) px-8 py-8">
-        <div className="max-w-7xl mx-auto flex items-end justify-between gap-4">
+    <div className="bg-papier">
+      <div className="border-b border-trait px-6 py-12">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-(--text-primary) mb-1 tracking-tight">Tous les cafés</h1>
-            <p className="text-(--text-secondary) text-sm">
-              {filteredCafes.length} établissement{filteredCafes.length > 1 ? "s" : ""} à Paris
+            <h1 className="text-section text-encre">le guide</h1>
+            <p className="mt-1 text-meta text-gris">
+              {chargement
+                ? "on regarde…"
+                : `${retenues.length} adresse${retenues.length > 1 ? "s" : ""}`}
             </p>
           </div>
           <button
-            onClick={goRandom}
-            disabled={randomLoading}
-            className="shrink-0 flex items-center gap-2 border border-(--border) bg-white text-(--text-primary) px-5 py-2.5 rounded-xl font-semibold text-sm hover:border-(--accent) hover:text-(--accent) transition-all btn-press disabled:opacity-60"
+            type="button"
+            onClick={tirerAuSort}
+            disabled={tirageEnCours}
+            className="flex items-center border border-trait px-6 text-encre disabled:opacity-60"
           >
-            {randomLoading ? (
-              <span className="w-4 h-4 border-2 border-(--accent) border-t-transparent rounded-full animate-spin" />
-            ) : "🎲"} Surprends-moi
+            {tirageEnCours ? "on cherche…" : "au hasard"}
           </button>
         </div>
       </div>
-      <div className="max-w-7xl mx-auto px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <div className="lg:col-span-1">
-            <Filters onFilterChange={handleFilterChange} />
-          </div>
-          <div className="lg:col-span-3">
-            {filteredCafes.length === 0 ? (
-              <div className="text-center py-20">
-                <p className="text-5xl mb-4">☕</p>
-                <p className="text-(--text-secondary) text-xl">Aucun café trouvé avec ces critères</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                {filteredCafes.map((cafe, i) => (
-                  <div key={cafe.id} className={`reveal reveal-delay-${Math.min((i % 3) + 1, 4)}`}>
-                    <CafeCard cafe={cafe} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+
+      <div className="mx-auto grid max-w-6xl gap-8 px-6 py-12 lg:grid-cols-[16rem_1fr]">
+        <aside>
+          <Filters onFilterChange={setFiltres} />
+        </aside>
+
+        <div>
+          {chargement ? (
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 6 }, (_, i) => <div key={i} className="squelette h-72" />)}
+            </div>
+          ) : erreur ? (
+            <p className="mesure text-corps text-encre">
+              {erreur} le guide revient en rafraîchissant la page.
+            </p>
+          ) : retenues.length === 0 ? (
+            <div className="mesure">
+              <p className="text-corps text-encre">
+                aucune adresse ne correspond à ces filtres. en retirer un, ou proposer la vôtre.
+              </p>
+              <button
+                type="button"
+                onClick={() => setFiltres(FILTRES_VIDES)}
+                className="mt-6 flex items-center bg-plaque px-6 text-white"
+              >
+                effacer les filtres
+              </button>
+            </div>
+          ) : (
+            <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {retenues.map((cafe, index) => (
+                <li key={cafe.id}>
+                  <CafeCard cafe={cafe} prioritaire={index < 3} />
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </div>

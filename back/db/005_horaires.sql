@@ -16,5 +16,3 @@ CREATE TABLE IF NOT EXISTS cafe_horaires (
   UNIQUE KEY horaire_cafe_jour_ouverture (cafe_id, jour, ouverture),
   FOREIGN KEY (cafe_id) REFERENCES cafes(id) ON DELETE CASCADE
 );
-
-CREATE INDEX idx_horaires_cafe ON cafe_horaires (cafe_id);

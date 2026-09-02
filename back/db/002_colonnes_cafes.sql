@@ -2,12 +2,14 @@
 -- `description` était écrite par les contrôleurs sans exister au schéma :
 -- toute création d'adresse échouait. `latitude`/`longitude` reprennent
 -- l'ancien add-coordinates.sql.
--- Note : ADD COLUMN IF NOT EXISTS est une syntaxe MariaDB. Sur MySQL 8,
--- retirer les IF NOT EXISTS et n'exécuter la migration qu'une fois.
+--
+-- Syntaxe portable MySQL 8 / MariaDB : pas de IF NOT EXISTS sur ADD COLUMN,
+-- que MySQL ne connaît pas. Une migration s'applique une fois, dans l'ordre ;
+-- la rejouer échoue bruyamment, et c'est le comportement voulu.
 
 USE spotheplace;
 
 ALTER TABLE cafes
-  ADD COLUMN IF NOT EXISTS description TEXT NULL AFTER adresse,
-  ADD COLUMN IF NOT EXISTS latitude DECIMAL(10, 8) NULL,
-  ADD COLUMN IF NOT EXISTS longitude DECIMAL(11, 8) NULL;
+  ADD COLUMN description TEXT NULL AFTER adresse,
+  ADD COLUMN latitude DECIMAL(10, 8) NULL,
+  ADD COLUMN longitude DECIMAL(11, 8) NULL;

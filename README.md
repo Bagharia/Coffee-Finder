@@ -53,8 +53,9 @@ Les migrations sont numérotées et s'appliquent dans l'ordre, une fois chacune.
 Une base créée avant leur mise en place est à jour jusqu'à `002` : reprendre
 à `003`.
 
-`ADD COLUMN IF NOT EXISTS` (migrations `002` et `004`) est une syntaxe MariaDB.
-Sur MySQL 8, retirer les `IF NOT EXISTS` et n'exécuter chaque fichier qu'une fois.
+Les fichiers sont écrits en syntaxe portable : ils passent sur MySQL 8 comme
+sur MariaDB. Rejouer une migration déjà appliquée échoue, et c'est voulu — mieux
+vaut une erreur bruyante qu'une base dans un état qu'on ne sait plus décrire.
 
 ### 2. Le back
 

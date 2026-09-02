@@ -1,67 +1,66 @@
-# Guide d'administration - Coffee Finder
+# Guide d'administration — SpotThePlace
 
-## Configuration de la base de données
+## Préparer la base
 
-1. Exécutez le script SQL pour créer la table users :
-```sql
-mysql -u votre_user -p votre_database < setup_admin.sql
+Depuis `back/`, migrations dans l'ordre puis, si la base est vide, le jeu de départ :
+
+```bash
+mysql -u root -p < db/001_init.sql
+mysql -u root -p < db/002_colonnes_cafes.sql
+mysql -u root -p < db/003_avis_favoris.sql
+mysql -u root -p < db/004_verdict.sql
+mysql -u root -p < db/005_horaires.sql
+mysql -u root -p < db/seed.sql   # facultatif, jamais en production
 ```
 
 ## Créer un compte administrateur
 
-### Via API (recommandé)
+`POST /api/users/register` crée **toujours** un compte `user`. Le champ `role`
+envoyé dans le corps de la requête est ignoré : sans ça, n'importe qui se
+fabriquerait un compte admin depuis le formulaire d'inscription.
 
-Utilisez un outil comme Postman, Thunder Client ou curl :
+La promotion se fait en base, à la main, et c'est voulu :
 
 ```bash
+# 1. créer le compte normalement
 curl -X POST http://localhost:3000/api/users/register \
   -H "Content-Type: application/json" \
-  -d '{
-    "email": "admin@coffee-finder.com",
-    "password": "VotreMotDePasseSecurise123!",
-    "nom": "Admin",
-    "role": "admin"
-  }'
+  -d '{"email":"admin@spotheplace.fr","password":"un-mot-de-passe-long","username":"Wendy"}'
 ```
 
-Vous recevrez une réponse avec un token JWT :
-```json
-{
-  "message": "Utilisateur créé avec succès",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": 1,
-    "email": "admin@coffee-finder.com",
-    "nom": "Admin",
-    "role": "admin"
-  }
-}
+```sql
+-- 2. le promouvoir
+UPDATE users SET role = 'admin' WHERE email = 'admin@spotheplace.fr';
 ```
 
-## Se connecter en tant qu'admin
+Le jeton reçu à l'inscription porte encore `role: user`. Il faut se reconnecter
+après la promotion pour obtenir un jeton admin.
+
+## Se connecter
 
 ```bash
 curl -X POST http://localhost:3000/api/users/login \
   -H "Content-Type: application/json" \
-  -d '{
-    "email": "admin@coffee-finder.com",
-    "password": "VotreMotDePasseSecurise123!"
-  }'
+  -d '{"email":"admin@spotheplace.fr","password":"un-mot-de-passe-long"}'
 ```
 
-## Utiliser le token pour ajouter des cafés
+Le mot de passe fait au minimum 8 caractères, à l'inscription comme au
+changement. Après 10 tentatives de connexion ratées depuis la même adresse IP
+en 15 minutes, l'API répond 429.
 
-Une fois connecté, utilisez le token reçu pour créer des cafés :
+## Ajouter une adresse
 
 ```bash
 curl -X POST http://localhost:3000/api/cafes \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer VOTRE_TOKEN_ICI" \
+  -H "Authorization: Bearer VOTRE_TOKEN" \
   -d '{
     "nom": "Café Example",
     "arrondissement": "10e",
     "adresse": "123 Rue de la Paix",
-    "image_url": "https://example.com/image.jpg",
+    "description": "Deux salles, une terrasse au sud.",
+    "verdict": "Le meilleur matcha du quartier, et la seule table où on tient à deux avec un ordinateur.",
+    "coup_de_coeur": 1,
     "nb_personnes": "20-50",
     "horaires": "8h-20h",
     "specialite": "Café,Matcha",
@@ -74,30 +73,31 @@ curl -X POST http://localhost:3000/api/cafes \
   }'
 ```
 
-## Supprimer un café (admin uniquement)
+`nom` et `arrondissement` sont obligatoires. `prix` vaut `1-10`, `10-20` ou `20+`.
+L'adresse est géocodée automatiquement via Nominatim : si le géocodage échoue,
+la fiche est créée quand même mais n'apparaît pas sur la carte.
+
+## Modifier, supprimer
 
 ```bash
+curl -X PUT http://localhost:3000/api/cafes/1 \
+  -H "Content-Type: application/json" -H "Authorization: Bearer VOTRE_TOKEN" \
+  -d '{"coup_de_coeur": 1}'
+
 curl -X DELETE http://localhost:3000/api/cafes/1 \
-  -H "Authorization: Bearer VOTRE_TOKEN_ICI"
+  -H "Authorization: Bearer VOTRE_TOKEN"
 ```
 
-## Routes protégées
+Un `PUT` ne touche que les champs envoyés. Une suppression emporte les critères,
+les avis et les favoris de l'adresse (cascade).
 
-Les routes suivantes nécessitent un token admin :
-- `POST /api/cafes` - Créer un café
-- `DELETE /api/cafes/:id` - Supprimer un café
+## Qui peut quoi
 
-## Routes publiques
+| Routes | Accès |
+|---|---|
+| `POST`, `PUT`, `DELETE /api/cafes` | jeton admin |
+| `/api/favoris/*`, `POST`/`DELETE /api/avis/*`, `/api/users/profile`, `/api/users/change-password` | jeton utilisateur |
+| `GET /api/cafes/*`, `GET /api/avis/:cafeId`, `/api/health` | public |
 
-Ces routes sont accessibles sans authentification :
-- `GET /api/cafes` - Liste de tous les cafés
-- `GET /api/cafes/:id` - Détails d'un café
-- `GET /api/cafes/search` - Recherche de cafés
-- `GET /api/cafes/specialite/:spec` - Cafés par spécialité
-- etc.
-
-## Routes utilisateurs
-
-- `POST /api/users/register` - Créer un compte
-- `POST /api/users/login` - Se connecter
-- `GET /api/users/profile` - Voir son profil (token requis)
+La liste complète des routes et le format des réponses sont dans le README à la
+racine du dépôt.

@@ -1,72 +1,82 @@
-const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const User = require('../models/User');
+const db = require('../config/db');
+const { JWT_SECRET } = require('../config/env');
+const { valider, MOT_DE_PASSE_MIN } = require('../utils/validation');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'votre_secret_jwt_super_securise';
+const DUREE_TOKEN = '24h';
+
+const echec = (res, err, contexte, message = 'Erreur serveur') => {
+  console.error(`[users] ${contexte} :`, err);
+  return res.status(500).json({ error: message });
+};
 
 exports.register = async (req, res) => {
+  const erreurs = valider(req.body, {
+    email: { requis: true, type: 'email', max: 255 },
+    password: { requis: true, min: MOT_DE_PASSE_MIN, max: 128 },
+    username: { requis: true, min: 2, max: 100 }
+  });
+
+  if (erreurs.length > 0) {
+    return res.status(400).json({ error: erreurs.join(' ') });
+  }
+
+  const { email, password, username } = req.body;
+
   try {
-    const { email, password, username, role } = req.body;
-
-    if (!email || !password || !username) {
-      return res.status(400).json({ error: 'Email, mot de passe et username requis' });
+    const existant = await User.findByEmail(email);
+    if (existant) {
+      return res.status(409).json({ error: 'Cet email est déjà utilisé.' });
     }
 
-    const existingUser = await User.findByEmail(email);
-    if (existingUser) {
-      return res.status(400).json({ error: 'Cet email est deja utilise' });
-    }
+    // Le rôle n'est jamais lu dans le corps de la requête : un POST avec
+    // "role":"admin" créerait un administrateur. La promotion se fait en base.
+    const role = 'user';
+    const userId = await User.create(email, password, username, role);
 
-    const userRole = role || 'user';
-    const userId = await User.create(email, password, username, userRole);
+    const token = jwt.sign({ userId, email, role }, JWT_SECRET, { expiresIn: DUREE_TOKEN });
 
-    const token = jwt.sign(
-      { userId, email, role: userRole },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    res.status(201).json({
-      message: 'Utilisateur cree avec succes',
+    return res.status(201).json({
+      message: 'Compte créé.',
       token,
-      user: {
-        id: userId,
-        email,
-        username,
-        role: userRole
-      }
+      user: { id: userId, email, username, role }
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erreur lors de la creation du compte' });
+    return echec(res, err, 'inscription', 'Erreur lors de la création du compte');
   }
 };
 
 exports.login = async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email et mot de passe requis.' });
+  }
+
   try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email et mot de passe requis' });
-    }
-
     const user = await User.findByEmail(email);
+
+    // Même message dans les deux cas : distinguer les deux dirait à un
+    // attaquant quels emails existent.
     if (!user) {
-      return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
+      return res.status(401).json({ error: 'Email ou mot de passe incorrect.' });
     }
 
-    const isPasswordValid = await User.comparePassword(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
+    const motDePasseValide = await User.comparePassword(password, user.password);
+    if (!motDePasseValide) {
+      return res.status(401).json({ error: 'Email ou mot de passe incorrect.' });
     }
 
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: user.role },
       JWT_SECRET,
-      { expiresIn: '24h' }
+      { expiresIn: DUREE_TOKEN }
     );
 
-    res.json({
-      message: 'Connexion reussie',
+    return res.json({
+      message: 'Connexion réussie.',
       token,
       user: {
         id: user.id,
@@ -76,36 +86,39 @@ exports.login = async (req, res) => {
       }
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erreur lors de la connexion' });
+    return echec(res, err, 'connexion', 'Erreur lors de la connexion');
   }
 };
 
 exports.changePassword = async (req, res) => {
+  const erreurs = valider(req.body, {
+    currentPassword: { requis: true, max: 128 },
+    newPassword: { requis: true, min: MOT_DE_PASSE_MIN, max: 128 }
+  });
+
+  if (erreurs.length > 0) {
+    return res.status(400).json({ error: erreurs.join(' ') });
+  }
+
+  const { currentPassword, newPassword } = req.body;
+
   try {
-    const { currentPassword, newPassword } = req.body;
-
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ error: 'Les deux mots de passe sont requis' });
-    }
-    if (newPassword.length < 6) {
-      return res.status(400).json({ error: 'Le nouveau mot de passe doit faire au moins 6 caractères' });
-    }
-
     const user = await User.findByEmail(req.user.email);
-    if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
+    if (!user) {
+      return res.status(404).json({ error: 'Utilisateur introuvable.' });
+    }
 
-    const valid = await User.comparePassword(currentPassword, user.password);
-    if (!valid) return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
+    const valide = await User.comparePassword(currentPassword, user.password);
+    if (!valide) {
+      return res.status(401).json({ error: 'Mot de passe actuel incorrect.' });
+    }
 
-    const bcrypt = require('bcryptjs');
-    const hashed = await bcrypt.hash(newPassword, 10);
-    await require('../config/db').query('UPDATE users SET password = ? WHERE id = ?', [hashed, user.id]);
+    const hash = await bcrypt.hash(newPassword, 10);
+    await db.query('UPDATE users SET password = ? WHERE id = ?', [hash, user.id]);
 
-    res.json({ message: 'Mot de passe modifié avec succès' });
+    return res.json({ message: 'Mot de passe modifié.' });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erreur serveur' });
+    return echec(res, err, 'changement de mot de passe');
   }
 };
 
@@ -113,11 +126,10 @@ exports.getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.userId);
     if (!user) {
-      return res.status(404).json({ error: 'Utilisateur introuvable' });
+      return res.status(404).json({ error: 'Utilisateur introuvable.' });
     }
-    res.json(user);
+    return res.json(user);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erreur serveur' });
+    return echec(res, err, 'lecture du profil');
   }
 };

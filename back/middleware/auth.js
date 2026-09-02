@@ -1,6 +1,5 @@
 const jwt = require('jsonwebtoken');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'votre_secret_jwt_super_securise';
+const { JWT_SECRET } = require('../config/env');
 
 exports.authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -21,11 +20,11 @@ exports.authenticateToken = (req, res, next) => {
 
 exports.isAdmin = (req, res, next) => {
   if (!req.user) {
-    return res.status(401).json({ error: 'Non authentifié' });
+    return res.status(401).json({ error: 'Non authentifiÃ©' });
   }
 
   if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Accès refusé. Droits administrateur requis.' });
+    return res.status(403).json({ error: 'AccÃ¨s refusÃ©. Droits administrateur requis.' });
   }
 
   next();

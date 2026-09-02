@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { usersAPI, cafesAPI } from "../services/api";
+import { usersAPI, cafesAPI, LIMITE_MAX } from "../services/api";
 
 function getIsAdmin() {
   try {
@@ -28,7 +28,9 @@ export default function Navbar() {
 
   // Charger tous les cafés une fois pour la recherche
   useEffect(() => {
-    cafesAPI.getAll().then(setAllCafes).catch(() => {});
+    cafesAPI.getAll({ limite: LIMITE_MAX })
+      .then((reponse) => setAllCafes(reponse.donnees))
+      .catch(() => {});
   }, []);
 
   // Filtrage local en temps réel
@@ -47,7 +49,10 @@ export default function Navbar() {
 
 
   const goToCafe = (id) => {
-    setSearchOpen(false);
+    // Vider la recherche referme le panneau de résultats, qui n'est affiché
+    // que tant que le champ contient quelque chose.
+    setSearchQuery("");
+    setSearchResults([]);
     navigate(`/cafe/${id}`);
   };
 
@@ -194,7 +199,7 @@ export default function Navbar() {
                     </div>
                   </button>
                 )) : (
-                  <div className="px-4 py-6 text-center text-(--text-muted) text-sm">Aucun résultat pour "{searchQuery}"</div>
+                  <p className="px-4 py-6 text-center text-(--text-muted) text-sm">Rien qui corresponde à « {searchQuery} ». Essayer un arrondissement, ou parcourir le guide.</p>
                 )}
               </div>
             )}

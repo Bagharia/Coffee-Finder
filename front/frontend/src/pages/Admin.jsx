@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { cafesAPI } from "../services/api";
+import { cafesAPI, LIMITE_MAX } from "../services/api";
 
 export default function Admin() {
   const [cafes, setCafes] = useState([]);
@@ -32,10 +32,10 @@ export default function Admin() {
   const fetchCafes = async () => {
     try {
       setLoading(true);
-      const data = await cafesAPI.getAll();
-      setCafes(data);
+      const reponse = await cafesAPI.getAll({ limite: LIMITE_MAX });
+      setCafes(reponse.donnees);
     } catch (err) {
-      setError("Erreur lors du chargement des cafés");
+      setError(err.message);
       console.error(err);
     } finally {
       setLoading(false);

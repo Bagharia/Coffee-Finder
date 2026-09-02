@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import CafeCard from "../components/CafeCard";
-import { favorisAPI, usersAPI, avisAPI } from "../services/api";
+import { favorisAPI, usersAPI, avisAPI, LIMITE_MAX } from "../services/api";
 
 function Stars({ value }) {
   return (
@@ -35,8 +35,8 @@ export default function Profile() {
 
   useEffect(() => {
     if (!usersAPI.isAuthenticated()) { navigate("/login"); return; }
-    favorisAPI.getAll()
-      .then(data => setFavorites(Array.isArray(data) ? data : []))
+    favorisAPI.getAll({ limite: LIMITE_MAX })
+      .then(reponse => setFavorites(reponse.donnees))
       .catch(() => setFavorites([]))
       .finally(() => setFavLoading(false));
     // Charger tous les avis de l'utilisateur via les favoris + tous les cafés

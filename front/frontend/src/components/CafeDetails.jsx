@@ -37,7 +37,7 @@ export default function CafeDetails() {
   useEffect(() => {
     cafesAPI.getById(id)
       .then(setCafe)
-      .catch((err) => { console.error(err); setError("Erreur lors du chargement du café"); })
+      .catch((err) => { console.error(err); setError(err.message); })
       .finally(() => setLoading(false));
   }, [id]);
 

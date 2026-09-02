@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { cafesAPI } from '../services/api';
+import { cafesAPI, LIMITE_MAX } from '../services/api';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -40,9 +40,9 @@ export default function Map() {
   const [filters, setFilters] = useState({ specialite: '', wifi: false, arrondissement: '' });
 
   useEffect(() => {
-    cafesAPI.getAll()
-      .then(data => setAllCafes(data))
-      .catch(() => setError('Erreur lors du chargement des cafés'))
+    cafesAPI.getAll({ limite: LIMITE_MAX })
+      .then(reponse => setAllCafes(reponse.donnees))
+      .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import CafeCard from "../components/CafeCard";
 import Filters from "../components/Filters";
-import { cafesAPI } from "../services/api";
+import { cafesAPI, LIMITE_MAX } from "../services/api";
 
 export default function CafePage() {
   const navigate = useNavigate();
@@ -22,9 +22,9 @@ export default function CafePage() {
   };
 
   useEffect(() => {
-    cafesAPI.getAll()
-      .then((data) => { setCafes(data); setFilteredCafes(data); })
-      .catch((err) => { console.error(err); setError("Erreur lors du chargement des cafés"); })
+    cafesAPI.getAll({ limite: LIMITE_MAX })
+      .then((reponse) => { setCafes(reponse.donnees); setFilteredCafes(reponse.donnees); })
+      .catch((err) => { console.error(err); setError(err.message); })
       .finally(() => setLoading(false));
   }, []);
 

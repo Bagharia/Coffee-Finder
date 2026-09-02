@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import CafeCard from "../components/CafeCard";
-import { cafesAPI } from "../services/api";
+import { cafesAPI, LIMITE_MAX } from "../services/api";
 
 const CATEGORY_CONFIG = {
   cafe:        { label: "Café",       icon: "☕", heroClass: "hero-coffee", accentColor: "rgba(146,64,14,0.08)" },
@@ -37,9 +37,9 @@ export default function CategoryPage() {
   useEffect(() => {
     const specialite = SPEC_MAP[category] || category;
     setLoading(true);
-    cafesAPI.getBySpecialite(specialite)
-      .then(setCafes)
-      .catch((err) => { console.error(err); setError("Erreur lors du chargement"); })
+    cafesAPI.getBySpecialite(specialite, { limite: LIMITE_MAX })
+      .then((reponse) => setCafes(reponse.donnees))
+      .catch((err) => { console.error(err); setError(err.message); })
       .finally(() => setLoading(false));
   }, [category]);
 

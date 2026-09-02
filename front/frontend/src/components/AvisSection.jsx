@@ -36,7 +36,7 @@ function timeAgo(dateStr) {
 
 export default function AvisSection({ cafeId }) {
   const isAuth = usersAPI.isAuthenticated();
-  const [data, setData] = useState({ avis: [], moyenne: null, total: 0 });
+  const [data, setData] = useState({ donnees: [], moyenne: null, total: 0 });
   const [myAvis, setMyAvis] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [note, setNote] = useState(0);
@@ -162,14 +162,14 @@ export default function AvisSection({ cafeId }) {
         <div className="space-y-3">
           {[1, 2].map(i => <div key={i} className="skeleton h-24 rounded-2xl" />)}
         </div>
-      ) : data.avis.length === 0 ? (
+      ) : data.donnees.length === 0 ? (
         <div className="text-center py-10 text-(--text-muted)">
           <p className="text-3xl mb-3">☕</p>
           <p className="text-sm">Pas encore d'avis — soyez le premier !</p>
         </div>
       ) : (
         <div className="space-y-4">
-          {data.avis.map((avis) => (
+          {data.donnees.map((avis) => (
             <div key={avis.id} className="bg-white border border-(--border) rounded-2xl p-5">
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-3">

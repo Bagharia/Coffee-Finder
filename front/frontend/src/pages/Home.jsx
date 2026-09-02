@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Carousel from "../components/Carousel";
 import CafeCard from "../components/CafeCard";
 import Map from "../components/Map";
-import { cafesAPI } from "../services/api";
+import { cafesAPI, LIMITE_MAX } from "../services/api";
 
 const HERO_IMG = "https://images.unsplash.com/photo-1453614512568-c4024d13c247?q=80&w=2532&auto=format&fit=crop";
 
@@ -37,12 +37,12 @@ export default function Home() {
   };
 
   useEffect(() => {
-    cafesAPI.getAll()
-      .then((data) => setCafes(data.slice(0, 8)))
+    cafesAPI.getAll({ limite: LIMITE_MAX })
+      .then((reponse) => setCafes(reponse.donnees.slice(0, 8)))
       .catch(console.error)
       .finally(() => setLoading(false));
     cafesAPI.getNouveautes()
-      .then((data) => setNouveautes(Array.isArray(data) ? data.slice(0, 4) : []))
+      .then((reponse) => setNouveautes(reponse.donnees.slice(0, 4)))
       .catch(() => {});
   }, []);
 

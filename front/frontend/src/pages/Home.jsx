@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Carousel from "../components/Carousel";
 import CafeCard from "../components/CafeCard";
-import Map from "../components/Map";
 import { cafesAPI, LIMITE_MAX } from "../services/api";
+
+// La carte reste hors du chargement initial de l'accueil : Leaflet pèse plus
+// que le reste du guide, et l'aperçu est tout en bas de la page.
+const Map = lazy(() => import("../components/Map"));
 
 const HERO_IMG = "https://images.unsplash.com/photo-1453614512568-c4024d13c247?q=80&w=2532&auto=format&fit=crop";
 
@@ -257,7 +260,9 @@ export default function Home() {
             </a>
           </div>
           <div className="reveal rounded-2xl overflow-hidden border border-(--border) shadow-sm" style={{ height: "420px" }}>
-            <Map />
+            <Suspense fallback={<p className="p-8 text-(--text-secondary)">Chargement de la carte…</p>}>
+              <Map />
+            </Suspense>
           </div>
         </div>
       </section>

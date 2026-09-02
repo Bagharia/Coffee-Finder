@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -9,8 +10,11 @@ import Register from "./pages/Register";
 import CategoryPage from "./pages/CategoryPage";
 import Admin from "./pages/Admin";
 import CafeDetails from "./components/CafeDetails";
-import MapPage from "./pages/MapPage";
 import Profile from "./pages/Profile";
+
+// Leaflet et sa feuille de style pèsent plus lourd que le reste du guide réuni.
+// La carte est une page parmi d'autres : elle ne se charge que si on y va.
+const MapPage = lazy(() => import("./pages/MapPage"));
 
 function getTokenPayload() {
   try {
@@ -44,7 +48,14 @@ function App() {
             <Route path="/cafes" element={<CafePage />} />
             <Route path="/cafe/:id" element={<CafeDetails />} />
             <Route path="/category/:category" element={<CategoryPage />} />
-            <Route path="/map" element={<MapPage />} />
+            <Route
+              path="/map"
+              element={
+                <Suspense fallback={<p className="p-8 text-(--text-secondary)">Chargement de la carte…</p>}>
+                  <MapPage />
+                </Suspense>
+              }
+            />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/profile" element={<Profile />} />

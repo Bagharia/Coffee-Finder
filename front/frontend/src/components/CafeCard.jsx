@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { favorisAPI, usersAPI } from "../services/api";
+import { favorisAPI } from "../services/api";
+import { useAuth } from "../hooks/useAuth";
 
 const FALLBACK = "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800";
 
@@ -50,7 +51,7 @@ function WorkScore({ cafe }) {
 
 export default function CoffeeCard({ cafe, initialFavorite }) {
   const navigate = useNavigate();
-  const isAuth = usersAPI.isAuthenticated();
+  const { connecte: isAuth } = useAuth();
   const [isFav, setIsFav] = useState(initialFavorite ?? false);
   const [loading, setLoading] = useState(false);
 

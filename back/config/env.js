@@ -15,8 +15,19 @@ if (manquantes.length > 0) {
   );
 }
 
+// 'lax' suffit quand le front et l'API partagent le même domaine — en
+// développement grâce au proxy Vite, en production si l'API est un
+// sous-domaine du site. Deux domaines distincts imposent 'none'.
+const SAMESITE_VALIDES = ['lax', 'strict', 'none'];
+const COOKIE_SAMESITE = (process.env.COOKIE_SAMESITE || 'lax').toLowerCase();
+
+if (!SAMESITE_VALIDES.includes(COOKIE_SAMESITE)) {
+  throw new Error(`COOKIE_SAMESITE doit valoir : ${SAMESITE_VALIDES.join(', ')}.`);
+}
+
 module.exports = {
   PORT: Number(process.env.PORT) || 3000,
+  COOKIE_SAMESITE,
   NODE_ENV: process.env.NODE_ENV || 'development',
   JWT_SECRET: process.env.JWT_SECRET,
   // Origine autorisée par CORS. En production, une absence de valeur ferait

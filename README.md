@@ -78,11 +78,10 @@ npm install
 npm run dev             # vite, port 5173
 ```
 
-Le front lit `VITE_API_URL` (voir `.env.example`). Aucune URL d'API n'est écrite
-en dur dans un composant.
-
-Trois valeurs doivent s'accorder, sinon le front tape dans le vide :
-`PORT` du back, `VITE_API_URL` du front, `FRONTEND_URL` du back (origine CORS).
+En développement, Vite relaie `/api` vers le back (`vite.config.js`). Le front
+et l'API partagent donc la même origine, ce qui est la condition pour que le
+cookie de session circule. `VITE_API_URL` vaut `/api` et il n'y a aucune URL
+d'API écrite en dur dans un composant.
 
 Sur macOS, le port 5000 est occupé par le récepteur AirPlay : garder 3000.
 
@@ -101,12 +100,13 @@ Sur macOS, le port 5000 est occupé par le récepteur AirPlay : garder 3000.
 | `FRONTEND_URL` | oui en production | origine autorisée par CORS |
 | `NODE_ENV` | non | `development` / `production` |
 | `TRUST_PROXY` | non | `1` seulement derrière un reverse proxy |
+| `COOKIE_SAMESITE` | non (`lax`) | `none` si le front et l'API sont sur deux domaines distincts |
 
 ### `front/frontend/.env`
 
 | Variable | Rôle |
 |---|---|
-| `VITE_API_URL` | racine de l'API, par exemple `http://localhost:3000/api` |
+| `VITE_API_URL` | racine de l'API. `/api` en développement et en production si l'API est servie sous le même domaine ; sinon l'URL complète |
 
 ---
 
@@ -157,6 +157,7 @@ reste dans le journal du serveur : le client ne reçoit jamais un message SQL.
 |---|---|---|
 | `POST` | `/api/users/register` | public — 5 par heure et par IP |
 | `POST` | `/api/users/login` | public — 10 par quart d'heure et par IP |
+| `POST` | `/api/users/logout` | public — vide le cookie de session |
 | `GET` | `/api/users/profile` | jeton |
 | `PUT` | `/api/users/change-password` | jeton |
 
@@ -204,8 +205,13 @@ parmi d'autres et il n'entre pas dans la moyenne.
 
 ## Sécurité
 
-- Jetons JWT valables 24 h, stockés côté navigateur. Tant qu'ils n'y sont pas en
-  cookie `httpOnly`, aucun rendu de HTML venant de la base, pas de
+- La session est un jeton JWT de 24 h dans un cookie `httpOnly`, `sameSite` et
+  `secure` en production. Aucun script de la page ne peut le lire : une
+  injection ne suffit plus à voler un compte. Le front ne stocke rien et
+  demande à `/api/users/profile` qui est connecté.
+- L'en-tête `Authorization: Bearer` reste accepté pour les scripts et la ligne
+  de commande, qui n'ont pas de navigateur à protéger.
+- Malgré le cookie : aucun rendu de HTML venant de la base, pas de
   `dangerouslySetInnerHTML`.
 - Mots de passe hachés avec bcrypt, 8 caractères minimum.
 - Toutes les requêtes SQL sont paramétrées.

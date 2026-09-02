@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { usersAPI } from "../services/api";
+import { useAuth } from "../hooks/useAuth";
 
 const IMG = "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=2070&auto=format&fit=crop";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { connexion } = useAuth();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,12 +19,10 @@ export default function Login() {
     if (!formData.email || !formData.password) { setError("Tous les champs sont requis"); return; }
     try {
       setLoading(true);
-      const response = await usersAPI.login({ email: formData.email, password: formData.password });
-      usersAPI.saveToken(response.token);
+      await connexion({ email: formData.email, password: formData.password });
       navigate("/");
-      window.location.reload();
-    } catch {
-      setError("Email ou mot de passe incorrect");
+    } catch (err) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }

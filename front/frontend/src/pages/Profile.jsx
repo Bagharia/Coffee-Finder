@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import CafeCard from "../components/CafeCard";
-import { favorisAPI, usersAPI, avisAPI, LIMITE_MAX } from "../services/api";
+import { favorisAPI, usersAPI, LIMITE_MAX } from "../services/api";
+import { useAuth } from "../hooks/useAuth";
 
 function Stars({ value }) {
   return (
@@ -15,34 +16,25 @@ function Stars({ value }) {
   );
 }
 
-function getTokenPayload() {
-  try {
-    const token = localStorage.getItem('token');
-    if (!token) return null;
-    return JSON.parse(atob(token.split('.')[1]));
-  } catch { return null; }
-}
-
 export default function Profile() {
   const navigate = useNavigate();
-  const payload = getTokenPayload();
+  const { utilisateur, chargement, connecte, deconnexion } = useAuth();
 
   const [favorites, setFavorites] = useState([]);
   const [favLoading, setFavLoading] = useState(true);
-  const [mesAvis, setMesAvis] = useState([]);
-  const [avisLoading, setAvisLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("favorites");
 
   useEffect(() => {
-    if (!usersAPI.isAuthenticated()) { navigate("/login"); return; }
+    // Tant que le profil n'est pas revenu de l'API, on ne redirige pas :
+    // sinon un rechargement de page éjecterait une session valable.
+    if (chargement) return;
+    if (!connecte) { navigate("/login"); return; }
+
     favorisAPI.getAll({ limite: LIMITE_MAX })
       .then(reponse => setFavorites(reponse.donnees))
       .catch(() => setFavorites([]))
       .finally(() => setFavLoading(false));
-    // Charger tous les avis de l'utilisateur via les favoris + tous les cafés
-    // On utilise une route dédiée si elle existe, sinon on skip
-    setAvisLoading(false);
-  }, [navigate]);
+  }, [chargement, connecte, navigate]);
 
   const removeFav = async (cafeId) => {
     try {
@@ -60,32 +52,29 @@ export default function Profile() {
     e.preventDefault();
     setPwError(""); setPwSuccess(false);
     if (pwForm.next !== pwForm.confirm) { setPwError("Les mots de passe ne correspondent pas"); return; }
-    if (pwForm.next.length < 6) { setPwError("Au moins 6 caractères requis"); return; }
+    if (pwForm.next.length < 8) { setPwError("Au moins 8 caractères requis"); return; }
     setPwLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/change-password`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ currentPassword: pwForm.current, newPassword: pwForm.next }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setPwError(data.error || "Erreur"); }
-      else { setPwSuccess(true); setPwForm({ current: "", next: "", confirm: "" }); }
-    } catch { setPwError("Erreur réseau"); }
-    setPwLoading(false);
-  };
-
-  const handleLogout = () => {
-    if (window.confirm("Voulez-vous vraiment vous déconnecter ?")) {
-      usersAPI.removeToken();
-      navigate("/");
-      window.location.reload();
+      await usersAPI.changePassword({ currentPassword: pwForm.current, newPassword: pwForm.next });
+      setPwSuccess(true);
+      setPwForm({ current: "", next: "", confirm: "" });
+    } catch (err) {
+      setPwError(err.message);
+    } finally {
+      setPwLoading(false);
     }
   };
 
-  const username = payload?.username || payload?.email || "Utilisateur";
-  const isAdmin = payload?.role === 'admin';
+  const handleLogout = async () => {
+    if (!window.confirm("Voulez-vous vraiment vous déconnecter ?")) return;
+    await deconnexion();
+    navigate("/");
+  };
+
+  // Le profil vient de l'API : le front ne peut plus lire le jeton, et il y
+  // trouvait de toute façon l'email au lieu du nom, que le JWT ne portait pas.
+  const username = utilisateur?.username || utilisateur?.email || "Utilisateur";
+  const isAdmin = utilisateur?.role === 'admin';
   const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=6B8F5E&color=fff&size=128`;
 
   const tabs = [

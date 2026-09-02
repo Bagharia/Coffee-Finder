@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { avisAPI, usersAPI } from "../services/api";
+import { avisAPI } from "../services/api";
+import { useAuth } from "../hooks/useAuth";
 
 function Stars({ value, onChange, size = "md" }) {
   const [hovered, setHovered] = useState(0);
@@ -35,7 +36,7 @@ function timeAgo(dateStr) {
 }
 
 export default function AvisSection({ cafeId }) {
-  const isAuth = usersAPI.isAuthenticated();
+  const { connecte: isAuth } = useAuth();
   const [data, setData] = useState({ donnees: [], moyenne: null, total: 0 });
   const [myAvis, setMyAvis] = useState(null);
   const [showForm, setShowForm] = useState(false);

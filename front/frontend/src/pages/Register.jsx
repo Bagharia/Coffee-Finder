@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { usersAPI } from "../services/api";
+import { useAuth } from "../hooks/useAuth";
 
 const IMG = "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?q=80&w=2069&auto=format&fit=crop";
 
 export default function Register() {
   const navigate = useNavigate();
+  const { inscription } = useAuth();
   const [formData, setFormData] = useState({ username: "", email: "", password: "", confirmPassword: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,11 +18,10 @@ export default function Register() {
     setError("");
     if (!formData.username || !formData.email || !formData.password) { setError("Tous les champs sont requis"); return; }
     if (formData.password !== formData.confirmPassword) { setError("Les mots de passe ne correspondent pas"); return; }
-    if (formData.password.length < 6) { setError("Le mot de passe doit contenir au moins 6 caractères"); return; }
+    if (formData.password.length < 8) { setError("Le mot de passe doit contenir au moins 8 caractères"); return; }
     try {
       setLoading(true);
-      const response = await usersAPI.register({ username: formData.username, email: formData.email, password: formData.password });
-      usersAPI.saveToken(response.token);
+      await inscription({ username: formData.username, email: formData.email, password: formData.password });
       navigate("/");
     } catch (err) {
       setError(err.message || "Erreur lors de l'inscription");

@@ -1,17 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { usersAPI, cafesAPI, LIMITE_MAX } from "../services/api";
-
-function getIsAdmin() {
-  try {
-    const token = localStorage.getItem('token');
-    if (!token) return false;
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.role === 'admin';
-  } catch {
-    return false;
-  }
-}
+import { cafesAPI, LIMITE_MAX } from "../services/api";
+import { useAuth } from "../hooks/useAuth";
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -23,8 +13,7 @@ export default function Navbar() {
   const [allCafes, setAllCafes] = useState([]);
   const searchRef = useRef(null);
   const timeoutRef = useRef(null);
-  const isAuthenticated = usersAPI.isAuthenticated();
-  const isAdmin = getIsAdmin();
+  const { connecte: isAuthenticated, estAdmin: isAdmin } = useAuth();
 
   // Charger tous les cafés une fois pour la recherche
   useEffect(() => {

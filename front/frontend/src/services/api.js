@@ -1,59 +1,51 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-
-// Si le serveur répond 401, le jeton est invalide ou expiré → déconnexion.
-function traiterNonAutorise(response) {
-  if (response.status === 401) {
-    localStorage.removeItem('token');
-    window.location.href = '/login';
-  }
-}
-
-function entetesAuth() {
-  const token = localStorage.getItem('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 /**
  * Toutes les requêtes passent ici.
- * L'API répond { error: "..." } en français sur les erreurs : on remonte ce
- * message tel quel, c'est lui que les écrans affichent. Un « HTTP error 400 »
- * ne dit rien à personne.
+ *
+ * La session vit dans un cookie httpOnly posé par l'API : le front ne la lit
+ * jamais, il se contente de laisser le navigateur l'envoyer — d'où
+ * `credentials: 'include'` partout et plus aucun jeton dans le code.
+ *
+ * L'API répond { error: "..." } en français : on remonte ce message tel quel,
+ * c'est lui que les écrans affichent.
  */
-async function requete(endpoint, { methode = 'GET', corps, auth = false } = {}) {
-  const options = {
+async function requete(endpoint, { methode = 'GET', corps } = {}) {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: methode,
-    headers: {
-      ...(corps ? { 'Content-Type': 'application/json' } : {}),
-      ...(auth ? entetesAuth() : {})
-    },
-    ...(corps ? { body: JSON.stringify(corps) } : {})
-  };
-
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
-  traiterNonAutorise(response);
+    credentials: 'include',
+    headers: corps ? { 'Content-Type': 'application/json' } : undefined,
+    body: corps ? JSON.stringify(corps) : undefined
+  });
 
   const donnees = await response.json().catch(() => null);
 
   if (!response.ok) {
+    // 401 = plus de session valable. Le contexte d'authentification écoute cet
+    // événement et remet l'interface en état déconnecté, sans rechargement.
+    if (response.status === 401) {
+      window.dispatchEvent(new CustomEvent('session-expiree'));
+    }
     throw new Error(donnees?.error || 'Le serveur est injoignable pour le moment.');
   }
 
   return donnees;
 }
 
-const get = (endpoint, auth = false) => requete(endpoint, { auth });
-const post = (endpoint, corps, auth = false) => requete(endpoint, { methode: 'POST', corps, auth });
-const put = (endpoint, corps) => requete(endpoint, { methode: 'PUT', corps, auth: true });
-const del = (endpoint) => requete(endpoint, { methode: 'DELETE', auth: true });
+const get = (endpoint) => requete(endpoint);
+const post = (endpoint, corps) => requete(endpoint, { methode: 'POST', corps });
+const put = (endpoint, corps) => requete(endpoint, { methode: 'PUT', corps });
+const del = (endpoint) => requete(endpoint, { methode: 'DELETE' });
 
 // Les routes de liste répondent { donnees, page, limite, total }, jamais un
 // tableau nu : c'est ce qui permet de paginer sans changer le contrat.
-function requeteListe(endpoint, { page, limite } = {}, auth = false) {
+function requeteListe(endpoint, { page, limite } = {}) {
   const parametres = new URLSearchParams();
   if (page) parametres.set('page', page);
   if (limite) parametres.set('limite', limite);
-  const suffixe = parametres.toString() ? `?${parametres}` : '';
-  return get(`${endpoint}${suffixe}`, auth);
+  const separateur = endpoint.includes('?') ? '&' : '?';
+  const suffixe = parametres.toString() ? `${separateur}${parametres}` : '';
+  return get(`${endpoint}${suffixe}`);
 }
 
 // Limite maximale acceptée par l'API. À utiliser là où l'écran a besoin de
@@ -64,7 +56,7 @@ export const LIMITE_MAX = 100;
 export const cafesAPI = {
   getAll: (params) => requeteListe('/cafes', params),
   getById: (id) => get(`/cafes/${id}`),
-  search: (parametres) => requeteListe(`/cafes/search?${new URLSearchParams(parametres)}`),
+  search: (filtres, params) => requeteListe(`/cafes/search?${new URLSearchParams(filtres)}`, params),
   getByArrondissement: (arr, params) => requeteListe(`/cafes/arrondissement/${arr}`, params),
   getBySpecialite: (spec, params) => requeteListe(`/cafes/specialite/${encodeURIComponent(spec)}`, params),
   getByWifi: (wifi, params) => requeteListe(`/cafes/wifi/${wifi}`, params),
@@ -73,7 +65,7 @@ export const cafesAPI = {
   getNouveautes: (params) => requeteListe('/cafes/nouveautes', params),
   getRandom: () => get('/cafes/random'),
 
-  create: (cafe) => post('/cafes', cafe, true),
+  create: (cafe) => post('/cafes', cafe),
   update: (id, cafe) => put(`/cafes/${id}`, cafe),
   delete: (id) => del(`/cafes/${id}`)
 };
@@ -81,27 +73,23 @@ export const cafesAPI = {
 export const usersAPI = {
   login: (identifiants) => post('/users/login', identifiants),
   register: (compte) => post('/users/register', compte),
-  getProfile: () => get('/users/profile', true),
-  changePassword: (motsDePasse) => put('/users/change-password', motsDePasse),
-
-  saveToken: (token) => localStorage.setItem('token', token),
-  getToken: () => localStorage.getItem('token'),
-  removeToken: () => localStorage.removeItem('token'),
-  isAuthenticated: () => !!localStorage.getItem('token')
+  logout: () => post('/users/logout'),
+  getProfile: () => get('/users/profile'),
+  changePassword: (motsDePasse) => put('/users/change-password', motsDePasse)
 };
 
 export const avisAPI = {
   // Réponse : { donnees, page, limite, total, moyenne }
   getByCafe: (cafeId, params) => requeteListe(`/avis/${cafeId}`, params),
-  getMine: (cafeId) => get(`/avis/${cafeId}/mine`, true),
-  save: (cafeId, avis) => post(`/avis/${cafeId}`, avis, true),
+  getMine: (cafeId) => get(`/avis/${cafeId}/mine`),
+  save: (cafeId, avis) => post(`/avis/${cafeId}`, avis),
   delete: (cafeId) => del(`/avis/${cafeId}`)
 };
 
 export const favorisAPI = {
-  getAll: (params) => requeteListe('/favoris', params, true),
-  check: (cafeId) => get(`/favoris/${cafeId}/check`, true),
-  add: (cafeId) => post(`/favoris/${cafeId}`, undefined, true),
+  getAll: (params) => requeteListe('/favoris', params),
+  check: (cafeId) => get(`/favoris/${cafeId}/check`),
+  add: (cafeId) => post(`/favoris/${cafeId}`),
   remove: (cafeId) => del(`/favoris/${cafeId}`)
 };
 

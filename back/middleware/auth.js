@@ -1,9 +1,9 @@
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../config/env');
+const { lireJeton } = require('../utils/cookie');
 
 exports.authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const token = lireJeton(req);
 
   if (!token) {
     return res.status(401).json({ error: 'Token manquant' });

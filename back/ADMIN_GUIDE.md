@@ -33,16 +33,23 @@ curl -X POST http://localhost:3000/api/users/register \
 UPDATE users SET role = 'admin' WHERE email = 'admin@spotheplace.fr';
 ```
 
-Le jeton reçu à l'inscription porte encore `role: user`. Il faut se reconnecter
-après la promotion pour obtenir un jeton admin.
+La session ouverte à l'inscription porte encore `role: user`. Il faut se
+reconnecter après la promotion pour obtenir une session admin.
 
 ## Se connecter
 
+La session est un cookie `httpOnly` : l'API ne renvoie plus de jeton dans le
+corps de la réponse. En ligne de commande, il faut donc un bocal à cookies.
+
 ```bash
-curl -X POST http://localhost:3000/api/users/login \
+curl -c session.txt -X POST http://localhost:3000/api/users/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@spotheplace.fr","password":"un-mot-de-passe-long"}'
 ```
+
+Les appels suivants réutilisent ce fichier avec `-b session.txt`. L'en-tête
+`Authorization: Bearer <jeton>` reste accepté pour les scripts qui préfèrent
+gérer leur jeton eux-mêmes.
 
 Le mot de passe fait au minimum 8 caractères, à l'inscription comme au
 changement. Après 10 tentatives de connexion ratées depuis la même adresse IP
@@ -51,9 +58,8 @@ en 15 minutes, l'API répond 429.
 ## Ajouter une adresse
 
 ```bash
-curl -X POST http://localhost:3000/api/cafes \
+curl -b session.txt -X POST http://localhost:3000/api/cafes \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer VOTRE_TOKEN" \
   -d '{
     "nom": "Café Example",
     "arrondissement": "10e",
@@ -80,12 +86,11 @@ la fiche est créée quand même mais n'apparaît pas sur la carte.
 ## Modifier, supprimer
 
 ```bash
-curl -X PUT http://localhost:3000/api/cafes/1 \
-  -H "Content-Type: application/json" -H "Authorization: Bearer VOTRE_TOKEN" \
+curl -b session.txt -X PUT http://localhost:3000/api/cafes/1 \
+  -H "Content-Type: application/json" \
   -d '{"coup_de_coeur": 1}'
 
-curl -X DELETE http://localhost:3000/api/cafes/1 \
-  -H "Authorization: Bearer VOTRE_TOKEN"
+curl -b session.txt -X DELETE http://localhost:3000/api/cafes/1
 ```
 
 Un `PUT` ne touche que les champs envoyés. Une suppression emporte les critères,
@@ -95,8 +100,8 @@ les avis et les favoris de l'adresse (cascade).
 
 | Routes | Accès |
 |---|---|
-| `POST`, `PUT`, `DELETE /api/cafes` | jeton admin |
-| `/api/favoris/*`, `POST`/`DELETE /api/avis/*`, `/api/users/profile`, `/api/users/change-password` | jeton utilisateur |
+| `POST`, `PUT`, `DELETE /api/cafes` | session admin |
+| `/api/favoris/*`, `POST`/`DELETE /api/avis/*`, `/api/users/profile`, `/api/users/change-password` | session utilisateur |
 | `GET /api/cafes/*`, `GET /api/avis/:cafeId`, `/api/health` | public |
 
 La liste complète des routes et le format des réponses sont dans le README à la

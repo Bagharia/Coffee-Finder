@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { cafesAPI, favorisAPI, usersAPI } from "../services/api";
+import { cafesAPI, favorisAPI } from "../services/api";
+import { useAuth } from "../hooks/useAuth";
 import AvisSection from "./AvisSection";
 
 const FALLBACK = "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800";
@@ -32,7 +33,7 @@ export default function CafeDetails() {
   const [error, setError] = useState(null);
   const [isFav, setIsFav] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
-  const isAuth = usersAPI.isAuthenticated();
+  const { connecte: isAuth } = useAuth();
 
   useEffect(() => {
     cafesAPI.getById(id)

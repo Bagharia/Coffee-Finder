@@ -4,6 +4,7 @@ const User = require('../models/User');
 const db = require('../config/db');
 const { JWT_SECRET } = require('../config/env');
 const { valider, MOT_DE_PASSE_MIN } = require('../utils/validation');
+const { poserJeton, retirerJeton } = require('../utils/cookie');
 
 const DUREE_TOKEN = '24h';
 
@@ -36,11 +37,13 @@ exports.register = async (req, res) => {
     const role = 'user';
     const userId = await User.create(email, password, username, role);
 
-    const token = jwt.sign({ userId, email, role }, JWT_SECRET, { expiresIn: DUREE_TOKEN });
+    // Le jeton part en cookie httpOnly et nulle part ailleurs : le renvoyer
+    // aussi dans le corps inviterait le front à le stocker, ce qu'on cherche
+    // précisément à arrêter.
+    poserJeton(res, jwt.sign({ userId, email, role }, JWT_SECRET, { expiresIn: DUREE_TOKEN }));
 
     return res.status(201).json({
       message: 'Compte créé.',
-      token,
       user: { id: userId, email, username, role }
     });
   } catch (err) {
@@ -69,15 +72,14 @@ exports.login = async (req, res) => {
       return res.status(401).json({ error: 'Email ou mot de passe incorrect.' });
     }
 
-    const token = jwt.sign(
+    poserJeton(res, jwt.sign(
       { userId: user.id, email: user.email, role: user.role },
       JWT_SECRET,
       { expiresIn: DUREE_TOKEN }
-    );
+    ));
 
     return res.json({
       message: 'Connexion réussie.',
-      token,
       user: {
         id: user.id,
         email: user.email,
@@ -88,6 +90,12 @@ exports.login = async (req, res) => {
   } catch (err) {
     return echec(res, err, 'connexion', 'Erreur lors de la connexion');
   }
+};
+
+exports.logout = (req, res) => {
+  // Aucune authentification exigée : un jeton expiré doit pouvoir être jeté.
+  retirerJeton(res);
+  return res.json({ message: 'Déconnexion effectuée.' });
 };
 
 exports.changePassword = async (req, res) => {

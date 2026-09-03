@@ -10,6 +10,84 @@ fait, en absolu.
 
 ---
 
+## 2026-09-03 — Pagination réelle, contrastes calculés, thème fusionné
+
+### Le guide cachait des adresses sans le dire
+
+Tous les écrans chargeaient avec `limite: LIMITE_MAX`, soit cent adresses, et
+affichaient le résultat. À cinq adresses ça ne se voit pas. À cent une, le
+guide en cache une silencieusement — aucune erreur, aucun indice, juste une
+liste incomplète que personne ne peut distinguer d'une liste complète.
+
+Le passage à une vraie pagination a entraîné une décision moins évidente : le
+filtrage devait passer côté serveur. Filtrer localement une page ne filtre que
+ce qui est déjà chargé, ce qui est **pire** que pas de filtre du tout — on
+croit avoir tout vu. Le prix est un aller-retour réseau à chaque filtre coché,
+là où c'était instantané.
+
+C'est un compromis que j'assume mais qui mérite d'être nommé : on échange de la
+vivacité aujourd'hui, avec cinq adresses, contre de l'exactitude demain, avec
+cent. L'inverse aurait été d'optimiser pour un cas qui cesse d'exister
+exactement au moment où le site réussit.
+
+L'API a dû gagner deux filtres au passage (`travailler`, `nouveautes`) : le
+front les proposait, l'API ne savait pas les traiter. Personne ne s'en était
+aperçu parce que tout se filtrait localement.
+
+**Le réflexe :** une limite haute placée « pour l'instant » est une bombe à
+retardement silencieuse. Elle ne casse rien, elle ment — et elle ment
+précisément le jour où le contenu devient intéressant.
+
+### Les contrastes, enfin calculés plutôt que crus
+
+La DA annonce des ratios et les appelle un plancher non négociable. Ils
+n'avaient jamais été recalculés depuis. Je les ai tous repassés :
+
+Onze paires vérifiées, dix passent — et les chiffres de la DA sont exacts au
+centième, ce qui est rassurant sur le sérieux du travail d'origine.
+
+Un échec, réel : `--color-trait` fait **1,36:1** sur papier. Pour un séparateur
+c'est parfait, l'œil n'a pas besoin de plus. Mais dix-neuf boutons, `select`,
+`input` et `textarea` s'en servaient comme **bordure de contrôle**, et la WCAG
+1.4.11 exige 3:1 pour la limite visible d'un contrôle — sans quoi on ne
+distingue pas où le champ commence.
+
+La correction n'est pas d'assombrir `--color-trait` : les quarante-cinq
+séparateurs deviendraient lourds et la page perdrait sa légèreté. C'est
+d'ajouter un second jeton, même teinte assombrie jusqu'à passer
+(`--color-trait-fort`, 3,13:1), et de ne l'appliquer qu'aux contrôles.
+
+**Le réflexe :** « contraste suffisant » n'est pas une propriété d'une couleur,
+c'est une propriété d'un couple couleur/usage. La même teinte peut être
+parfaite en séparateur et fautive en bordure de bouton.
+
+### Un thème proposé, fusionné plutôt qu'appliqué
+
+Un `index.css` de remplacement m'a été proposé, présenté comme remplaçant
+« intégralement » l'existant. Vérification faite, il aurait cassé cinq choses en
+silence : `.squelette` (neuf fichiers, tous les états de chargement),
+`.mesure` (neuf fichiers, la largeur de lecture), `.plaque-carte` et
+`.feuille-ouverte` (la carte), et `--text-nom` renommé sans que les quatre
+usages suivent.
+
+Il apportait aussi de vraies améliorations : `text-wrap: balance` et `pretty`,
+`-webkit-text-size-adjust`, `::selection`, un jeton de rayon. Et deux choses
+qu'il présentait comme des apports mais qui existaient déjà en mieux : la règle
+des 44px, plus complète dans l'existant (elle couvre `input`/`select`/`textarea`
+et exempte les liens en ligne, que la version proposée aurait cassés en leur
+imposant 44px au milieu d'un paragraphe), et le focus, plus abouti en vert
+documenté à 9,07:1 qu'en rouge uniforme.
+
+Résultat : fusion des quatre apports réels, conservation de tout ce dont le
+code dépend.
+
+**Le réflexe :** un fichier qu'on propose de remplacer « intégralement » se
+compare d'abord à l'usage réel, classe par classe. Ce qui n'y figure pas ne
+disparaît pas avec une erreur — ça disparaît en silence, et le style manquant
+ne se voit qu'à l'écran, écran par écran.
+
+---
+
 ## 2026-09-03 — Les quatre ajouts, côté écran
 
 Le back savait faire quatre choses de plus ; aucune n'existait dans

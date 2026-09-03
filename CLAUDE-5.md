@@ -80,8 +80,14 @@ chargement, vide, erreur, contenu. L'état vide est une invitation à agir
 
 ### Accessibilité — plancher non négociable
 
-- Contraste AA sur tout texte. Le blanc sur `--color-plaque` passe, le gris sur
-  papier doit être vérifié avant usage sur du petit corps.
+- Contraste AA sur tout texte, recalculé le 2026-09-03 : blanc sur plaque
+  10,79:1, encre sur papier 12,95:1, gris sur papier 4,74:1 (passe de justesse,
+  ne pas éclaircir sans refaire le calcul), rouge sur papier 5,70:1, blanc sur
+  rouge 6,78:1.
+- **La bordure d'un contrôle n'est pas un filet décoratif.** `--color-trait`
+  (1,36:1) convient aux séparateurs ; un bouton, un `select`, un `input` ou un
+  `textarea` portent `--color-trait-fort` (3,13:1), seuil exigé par WCAG 1.4.11
+  pour la limite visible d'un contrôle.
 - Focus visible partout (déjà dans `index.css`, ne pas le désactiver).
 - Cibles tactiles à 44px minimum : le site s'utilise debout, en marchant.
 - `prefers-reduced-motion` respecté.
@@ -141,7 +147,10 @@ d'usage.
 - Un `catch` journalise l'erreur complète côté serveur et renvoie un message
   générique au client. Jamais le message SQL brut.
 - Pagination obligatoire sur toute route de liste (`?page`, `?limite`, défaut
-  20, plafond appliqué dans `utils/validation.js`).
+  20, plafond appliqué dans `utils/validation.js`). **Et le front doit s'en
+  servir** : charger avec `limite: LIMITE_MAX` cache silencieusement les
+  adresses au-delà de la centième. Le guide et les catégories passent par
+  `useListePaginee`.
 - Tout appel réseau sortant porte un délai maximal (`AbortSignal.timeout`).
   Express n'en impose aucun : sans lui, un service lent suspend la requête
   indéfiniment. Voir `geocodeAdresse` dans `cafeController.js`.

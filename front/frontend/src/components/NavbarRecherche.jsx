@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { cafesAPI, LIMITE_MAX } from "../services/api";
+import { useFermeture } from "../hooks/useFermeture";
 import Loupe from "../icons/Loupe";
 
 /**
@@ -24,6 +25,7 @@ export default function NavbarRecherche() {
   const [saisie, setSaisie] = useState("");
   const [adresses, setAdresses] = useState([]);
   const champ = useRef(null);
+  const zone = useRef(null);
 
   useEffect(() => {
     cafesAPI.getAll({ limite: LIMITE_MAX })
@@ -50,10 +52,14 @@ export default function NavbarRecherche() {
     ).slice(0, 6);
   }, [saisie, adresses]);
 
-  const fermer = () => {
+  // Échap ne fonctionnait que depuis le champ : hors de lui, et au clic à
+  // l'extérieur, le panneau restait posé au-dessus de la page.
+  const fermer = useCallback(() => {
     setSaisie("");
     setOuverte(false);
-  };
+  }, []);
+
+  useFermeture(ouverte, zone, fermer);
 
   const ouvrir = (id) => {
     fermer();
@@ -61,7 +67,7 @@ export default function NavbarRecherche() {
   };
 
   return (
-    <div className="relative hidden md:block">
+    <div className="relative hidden md:block" ref={zone}>
       <button
         type="button"
         aria-expanded={ouverte}

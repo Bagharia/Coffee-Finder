@@ -33,14 +33,14 @@ export default function Login() {
 
   return (
     <div className="mx-auto max-w-sm px-6 py-16">
-      <h1 className="text-section text-encre">connexion</h1>
-      <p className="mt-1 text-meta text-gris">pour retrouver vos favoris et vos avis.</p>
+      <h1 className="text-titre text-encre">Connexion</h1>
+      <p className="chapo">Pour Retrouver Vos Favoris Et Vos Avis.</p>
 
       {erreur && <p className="mt-6 text-meta text-rouge">{erreur}</p>}
 
       <form onSubmit={envoyer} className="mt-8 flex flex-col gap-4">
         <label>
-          <span className="mb-2 block text-meta text-gris">email</span>
+          <span className="mb-2 block text-meta text-gris">Email</span>
           <input
             type="email"
             name="email"
@@ -48,12 +48,12 @@ export default function Login() {
             onChange={changer}
             autoComplete="email"
             required
-            className="w-full border border-trait bg-carte px-3 text-corps text-encre"
+            className="w-full border border-trait rounded-carte bg-carte px-3 text-corps text-encre"
           />
         </label>
 
         <label>
-          <span className="mb-2 block text-meta text-gris">mot de passe</span>
+          <span className="mb-2 block text-meta text-gris">Mot De Passe</span>
           <input
             type="password"
             name="password"
@@ -61,11 +61,11 @@ export default function Login() {
             onChange={changer}
             autoComplete="current-password"
             required
-            className="w-full border border-trait bg-carte px-3 text-corps text-encre"
+            className="w-full border border-trait rounded-carte bg-carte px-3 text-corps text-encre"
           />
         </label>
 
-        <button type="submit" disabled={enCours} className="mt-2 flex items-center justify-center bg-plaque px-6 text-white disabled:opacity-60">
+        <button type="submit" disabled={enCours} className="bouton mt-2">
           {enCours ? "connexion…" : "se connecter"}
         </button>
       </form>

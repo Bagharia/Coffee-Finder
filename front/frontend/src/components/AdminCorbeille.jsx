@@ -73,11 +73,11 @@ export default function AdminCorbeille({ surChangement }) {
 
       {ouverte && (
         <div className="mt-4">
-          {chargement && <p className="text-meta text-gris">chargement…</p>}
+          {chargement && <p className="text-meta text-gris">Chargement…</p>}
           {erreur && <p className="text-meta text-rouge">{erreur}</p>}
 
           {!chargement && !erreur && adresses.length === 0 && (
-            <p className="text-meta text-gris">la corbeille est vide.</p>
+            <p className="text-meta text-gris">La Corbeille Est Vide.</p>
           )}
 
           {adresses.length > 0 && (
@@ -95,7 +95,7 @@ export default function AdminCorbeille({ surChangement }) {
                     disabled={enCours === cafe.id}
                     className="flex min-h-11 items-center text-meta text-encre underline underline-offset-4 disabled:opacity-50"
                   >
-                    rétablir
+                    Rétablir
                   </button>
 
                   <button
@@ -104,7 +104,7 @@ export default function AdminCorbeille({ surChangement }) {
                     disabled={enCours === cafe.id}
                     className="flex min-h-11 items-center text-meta text-rouge underline underline-offset-4 disabled:opacity-50"
                   >
-                    détruire
+                    Détruire
                   </button>
                 </li>
               ))}

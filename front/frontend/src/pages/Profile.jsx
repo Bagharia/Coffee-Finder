@@ -6,8 +6,8 @@ import { favorisAPI, LIMITE_MAX } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 
 const ONGLETS = [
-  { id: "favoris", label: "mes favoris" },
-  { id: "reglages", label: "réglages" }
+  { id: "favoris", label: "Mes Favoris" },
+  { id: "reglages", label: "Réglages" }
 ];
 
 export default function Profile() {
@@ -51,13 +51,13 @@ export default function Profile() {
     <div className="mx-auto max-w-5xl px-6 py-12">
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-trait pb-6">
         <div>
-          <h1 className="text-section text-encre">{utilisateur?.username ?? "mon compte"}</h1>
-          <p className="mt-1 text-meta text-gris">
+          <h1 className="text-titre text-encre">{utilisateur?.username ?? "mon compte"}</h1>
+          <p className="chapo">
             {favoris.length} adresse{favoris.length === 1 ? "" : "s"} en favori
           </p>
         </div>
         <button type="button" onClick={seDeconnecter} className="flex items-center text-meta text-rouge underline underline-offset-4">
-          se déconnecter
+          Se Déconnecter
         </button>
       </div>
 
@@ -92,8 +92,8 @@ export default function Profile() {
               <p className="text-corps text-encre">
                 aucune adresse en favori pour l&apos;instant. le cœur sur une fiche la garde ici.
               </p>
-              <Link to="/cafes" className="mt-6 inline-flex items-center bg-plaque px-6 text-white">
-                parcourir le guide
+              <Link to="/cafes" className="bouton mt-6">
+                Parcourir Le Guide
               </Link>
             </div>
           ) : (
@@ -106,7 +106,7 @@ export default function Profile() {
                     onClick={() => retirerFavori(cafe.id)}
                     className="flex items-center self-start text-meta text-gris underline underline-offset-4"
                   >
-                    retirer des favoris
+                    Retirer Des Favoris
                   </button>
                 </li>
               ))}
@@ -118,12 +118,12 @@ export default function Profile() {
       {onglet === "reglages" && (
         <div className="mt-8 flex flex-col gap-10">
           <section>
-            <h2 className="mb-4 text-meta text-gris">changer de mot de passe</h2>
+            <h2 className="mb-4 text-meta text-gris">Changer De Mot De Passe</h2>
             <ProfileMotDePasse />
           </section>
 
           <section>
-            <h2 className="mb-4 text-meta text-gris">mes avis</h2>
+            <h2 className="mb-4 text-meta text-gris">Mes Avis</h2>
             <p className="mesure text-corps text-encre">
               vos avis se retrouvent sur la fiche de chaque adresse, à l&apos;endroit où vous les avez écrits.
             </p>

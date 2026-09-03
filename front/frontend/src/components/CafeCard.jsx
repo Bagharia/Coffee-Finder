@@ -30,7 +30,7 @@ function criteres(cafe) {
   return liste;
 }
 
-export default function CafeCard({ cafe, initialFavorite, prioritaire = false }) {
+export default function CafeCard({ cafe, initialFavorite, prioritaire = false, vedette = false }) {
   const navigate = useNavigate();
   const { connecte } = useAuth();
   const [favori, setFavori] = useState(initialFavorite ?? false);
@@ -66,10 +66,11 @@ export default function CafeCard({ cafe, initialFavorite, prioritaire = false })
   const listeCriteres = criteres(cafe);
 
   return (
-    <article className="relative flex flex-col border border-trait bg-carte">
+    <article className="relative flex flex-col overflow-hidden rounded-carte border border-trait bg-carte transition-shadow hover:border-trait-fort">
       {/* Rapport fixe : la place de l'image est réservée avant son arrivée,
-          la carte ne saute pas quand elle se charge. */}
-      <div className="aspect-[4/3] overflow-hidden">
+          la carte ne saute pas quand elle se charge. `overflow-hidden` sur
+          l'article suffit à arrondir l'image avec lui. */}
+      <div className={vedette ? "aspect-[16/9] overflow-hidden" : "aspect-[4/3] overflow-hidden"}>
         {cafe.image_url ? (
           <img
             src={cafe.image_url}
@@ -83,10 +84,10 @@ export default function CafeCard({ cafe, initialFavorite, prioritaire = false })
         )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-2 p-4">
+      <div className="flex flex-1 flex-col gap-2 p-5">
         {categorie && <span className="plaque self-start">{categorie.toLowerCase()}</span>}
 
-        <h3 className="text-adresse text-encre">
+        <h3 className={vedette ? "mt-1 text-section text-encre" : "mt-1 text-adresse text-encre"}>
           {/* Le lien couvre toute la carte via son ::after : la carte reste un
               article, pas un div cliquable. */}
           <Link to={`/cafe/${cafe.id}`} className="after:absolute after:inset-0">
@@ -95,6 +96,15 @@ export default function CafeCard({ cafe, initialFavorite, prioritaire = false })
         </h3>
 
         <p className="text-meta text-gris">{cafe.arrondissement}</p>
+
+        {/* Le guide vend l'avis de Wendy, et la grille n'en montrait pas un
+            mot : une carte sans verdict, c'est une entrée d'annuaire. Tronqué
+            en deux lignes — trois en vedette, qui a la place. */}
+        {cafe.verdict && (
+          <p className={`voix-carte ${vedette ? "line-clamp-3" : "line-clamp-2"}`}>
+            {cafe.verdict}
+          </p>
+        )}
 
         {listeCriteres.length > 0 && (
           <ul className="flex flex-wrap gap-x-4 text-meta text-gris">
@@ -107,10 +117,10 @@ export default function CafeCard({ cafe, initialFavorite, prioritaire = false })
         <div className="mt-auto flex items-end justify-between gap-3 pt-2">
           <div className="text-meta text-gris">
             {cafe.prix && <p>{PRIX[cafe.prix] ?? cafe.prix}</p>}
-            {estNouveau(cafe.created_at) && <p>nouveau</p>}
+            {estNouveau(cafe.created_at) && <p>Nouveau</p>}
             {/* Seul « fermé » s'affiche : signaler « ouvert » l'allumerait sur
                 presque toutes les cartes et ne signalerait plus rien. */}
-            {estOuvert(cafe.horaires) === false && <p className="text-rouge">fermé</p>}
+            {estOuvert(cafe.horaires) === false && <p className="text-rouge">Fermé</p>}
           </div>
 
           {/* Au-dessus du lien de carte, sinon il l'intercepterait. */}

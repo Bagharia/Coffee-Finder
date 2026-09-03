@@ -42,11 +42,11 @@ export default function MapFeuille({ cafe, ouverte, onBasculer, onFermer }) {
         )}
 
         <div className="mt-4 flex gap-3">
-          <Link to={`/cafe/${cafe.id}`} className="flex items-center bg-plaque px-4 text-white">
-            voir la fiche
+          <Link to={`/cafe/${cafe.id}`} className="bouton">
+            Voir La Fiche
           </Link>
-          <button type="button" onClick={onFermer} className="flex items-center border border-trait-fort px-4 text-encre">
-            fermer
+          <button type="button" onClick={onFermer} className="bouton-secondaire">
+            Fermer
           </button>
         </div>
       </div>

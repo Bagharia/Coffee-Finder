@@ -105,8 +105,8 @@ export default function CafeDetails() {
         <p className="mesure text-corps text-encre">
           {erreur ?? "cette adresse n'existe pas."} elle a peut-être été retirée du guide.
         </p>
-        <Link to="/cafes" className="mt-6 inline-flex items-center bg-plaque px-6 text-white">
-          parcourir le guide
+        <Link to="/cafes" className="bouton mt-6">
+          Parcourir Le Guide
         </Link>
       </div>
     );
@@ -151,11 +151,11 @@ export default function CafeDetails() {
         <div className="mt-10">
           <p className="voix">{cafe.verdict}</p>
           {cafe.coup_de_coeur === 1 && (
-            <p className="plaque plaque-active mt-5">coup de cœur</p>
+            <p className="plaque plaque-active mt-5">Coup De Cœur</p>
           )}
         </div>
       ) : (
-        cafe.coup_de_coeur === 1 && <p className="plaque plaque-active mt-10">coup de cœur</p>
+        cafe.coup_de_coeur === 1 && <p className="plaque plaque-active mt-10">Coup De Cœur</p>
       )}
 
       {cafe.description && (
@@ -171,9 +171,9 @@ export default function CafeDetails() {
           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cafe.adresse)}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-8 inline-flex items-center border border-trait-fort px-6 text-encre"
+          className="bouton-secondaire mt-8"
         >
-          ouvrir dans un plan
+          Ouvrir Dans Un Plan
         </a>
       )}
 

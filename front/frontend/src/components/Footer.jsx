@@ -1,43 +1,59 @@
 import { Link } from "react-router-dom";
 
-const LIENS = [
-  { label: "accueil", href: "/" },
-  { label: "toutes les adresses", href: "/cafes" },
-  { label: "café", href: "/category/Café" },
-  { label: "matcha", href: "/category/Matcha" },
-  { label: "bubble tea", href: "/category/Bubble Tea" },
-  { label: "thé", href: "/category/Thé" },
-  { label: "carte", href: "/map" }
+const GUIDE = [
+  { label: "Toutes Les Adresses", href: "/cafes" },
+  { label: "La Carte", href: "/map" }
 ];
+
+const SPECIALITES = [
+  { label: "Café", href: "/category/Café" },
+  { label: "Matcha", href: "/category/Matcha" },
+  { label: "Bubble Tea", href: "/category/Bubble Tea" },
+  { label: "Thé", href: "/category/Thé" }
+];
+
+function Colonne({ titre, liens }) {
+  return (
+    <nav>
+      <h2 className="mb-3 text-meta text-white/50">{titre}</h2>
+      <ul className="flex flex-col">
+        {liens.map(({ label, href }) => (
+          <li key={href}>
+            <Link
+              to={href}
+              className="flex items-center text-corps text-white/80 hover:text-white"
+            >
+              {label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
 
 export default function Footer() {
   return (
-    <footer className="bg-plaque px-6 py-12 text-white">
-      <div className="mx-auto flex max-w-5xl flex-col gap-10">
-        <div className="grid gap-10 md:grid-cols-2">
+    <footer className="bg-plaque px-6 py-16 text-white">
+      <div className="mx-auto flex max-w-6xl flex-col gap-12">
+        {/* Trois colonnes plutôt qu'une liste unique de sept liens : le pied de
+            page servait de sommaire sans dire de quoi. */}
+        <div className="grid gap-10 md:grid-cols-3">
           <div className="flex flex-col items-start gap-4">
-            {/* Un seul geste fort par zone : le pied de page a le sien. */}
-            <span className="plaque">spotheplace</span>
-            <p className="mesure text-meta text-white/80">
-              les cafés, salons de thé et bubble tea de paris, une adresse à la fois.
+            {/* Un seul geste fort par zone. Éclairci pour se détacher de la
+                barre : une plaque vert foncé sur fond vert foncé disparaît. */}
+            <span className="plaque plaque-sur-fonce">Spotheplace</span>
+            <p className="mesure text-corps text-white/70">
+              Les Cafés, Salons De Thé Et Bubble Tea De Paris.
+              Une Adresse, Un Verdict.
             </p>
           </div>
 
-          <nav>
-            <h2 className="mb-4 text-meta text-white/60">le guide</h2>
-            <ul className="flex flex-col">
-              {LIENS.map(({ label, href }) => (
-                <li key={href}>
-                  <Link to={href} className="flex items-center text-meta text-white/80 hover:text-white">
-                    {label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
+          <Colonne titre="Le Guide" liens={GUIDE} />
+          <Colonne titre="Spécialités" liens={SPECIALITES} />
         </div>
 
-        <p className="border-t border-white/20 pt-6 text-meta text-white/60">
+        <p className="border-t border-white/15 pt-6 text-meta text-white/50">
           © {new Date().getFullYear()} spotheplace — paris
         </p>
       </div>

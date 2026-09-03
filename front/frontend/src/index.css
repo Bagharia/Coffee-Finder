@@ -35,10 +35,13 @@
   --font-voix: "Instrument Serif", ui-serif, Georgia, "Times New Roman", serif;
 
   /* --- Échelle ---------------------------------------------------------- */
-  --text-titre: clamp(2.5rem, 7vw, 4.5rem);
-  --text-titre--line-height: 1.02;
+  /* Titre de page. La graisse 600 était réservée à l'accroche géante de
+     l'accueil, qui n'existe plus : un titre de page se tient en 500, comme
+     les autres titres. */
+  --text-titre: clamp(2rem, 4vw, 3rem);
+  --text-titre--line-height: 1.08;
   --text-titre--letter-spacing: -0.02em;
-  --text-titre--font-weight: 600;
+  --text-titre--font-weight: 500;
 
   --text-section: 1.75rem;
   --text-section--line-height: 1.15;
@@ -54,15 +57,25 @@
   --text-voix: 1.5rem;
   --text-voix--line-height: 1.35;
 
+  /* La voix en ouverture d'accueil : c'est elle qui porte la page, elle ne
+     peut pas avoir la taille d'un avis en bas de fiche. */
+  --text-voix-une: clamp(1.75rem, 2.6vw, 2.5rem);
+  --text-voix-une--line-height: 1.3;
+
   --text-meta: 0.8125rem;
   --text-meta--line-height: 1.4;
   --text-meta--font-weight: 500;
 
-  /* --- Rayon -------------------------------------------------------------
-     Une seule valeur : la plaque est presque carrée, et les blocs `bg-carte`
-     gardent des angles vifs — c'est un choix de la DA, pas un oubli. Elle
-     était écrite en dur à deux endroits. */
+  /* --- Rayons -----------------------------------------------------------
+     La plaque reste presque carrée : c'est une plaque de rue, pas un bouton.
+     Les blocs encadrés — cartes d'adresse, images, champs — sont adoucis :
+     angles vifs partout, la page devenait sèche et sans hiérarchie. */
   --radius-plaque: 2px;
+  --radius-carte: 6px;
+
+  /* La barre et ses panneaux : un rayon plus franc, qui la fait lire comme un
+     objet posé et non comme un bloc de contenu. */
+  --radius-barre: 12px;
 }
 
 /* ============================================================
@@ -223,6 +236,89 @@
     line-height: 1.35;
   }
 
+  /* La voix, en extrait sur une carte du guide. 1.125rem est le plancher fixé
+     par la DA : en dessous, les déliés d'Instrument Serif disparaissent à
+     l'écran. Pas de filet ici — la carte a déjà ses bords. */
+  .voix-carte {
+    font-family: var(--font-voix);
+    font-size: 1.125rem;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 1.35;
+    color: var(--color-encre);
+  }
+
+  /* La même voix, à l'échelle d'une ouverture d'accueil. Pas de filet au-dessus
+     ici : la plaque du nom joue déjà ce rôle, deux séparations d'affilée
+     hacheraient le bloc. Mesure plus courte qu'un avis de fiche — une citation
+     se lit en diagonale, pas en paragraphe. */
+  .voix-une {
+    max-width: 26ch;
+    font-family: var(--font-voix);
+    font-size: var(--text-voix-une);
+    font-style: italic;
+    font-weight: 400;
+    line-height: 1.3;
+  }
+
+  /* ==========================================================
+     BOUTONS — trois registres, pas onze piles d'utilitaires.
+     La même action avait jusqu'ici autant d'écritures que
+     d'endroits où elle apparaissait, et elles divergeaient.
+     ========================================================== */
+  .bouton,
+  .bouton-secondaire {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 1.5rem;
+    border-radius: var(--radius-carte);
+    font-size: var(--text-corps);
+    font-weight: 500;
+    line-height: 1;
+    text-align: center;
+  }
+
+  /* L'action principale d'un écran. Une seule par zone. */
+  .bouton {
+    background-color: var(--color-plaque);
+    color: #fff;
+  }
+
+  .bouton:hover {
+    background-color: var(--color-plaque-clair);
+  }
+
+  /* L'action de repli, à côté de la principale. */
+  .bouton-secondaire {
+    border: 1px solid var(--color-trait-fort);
+    color: var(--color-encre);
+  }
+
+  .bouton-secondaire:hover {
+    border-color: var(--color-plaque);
+    color: var(--color-plaque);
+  }
+
+  .bouton:disabled,
+  .bouton-secondaire:disabled {
+    opacity: 0.6;
+  }
+
+  /* ==========================================================
+     LA PLAQUE SUR FOND SOMBRE — barre et pied de page.
+     Une plaque vert foncé sur une barre vert foncé disparaît :
+     il ne reste que son liseré, qui se lit comme une boîte vide.
+     Elle s'éclaircit pour redevenir un objet posé sur la barre.
+     ========================================================== */
+  .plaque-sur-fonce {
+    background-color: var(--color-plaque-clair);
+    box-shadow:
+      inset 0 0 0 3px var(--color-plaque-clair),
+      inset 0 0 0 4px #fff;
+  }
+
   /* ==========================================================
      IMAGE DE REPLI — le cas le plus fréquent tant que la base
      n'est pas remplie. Une adresse sans photo doit avoir l'air
@@ -275,5 +371,17 @@
   /* Le corps de texte reste sous 70 caractères par ligne. */
   .mesure {
     max-width: 70ch;
+  }
+
+
+  /* Le chapô qui suit un titre de page. Il explique, il n'insiste pas :
+     même corps que le texte courant, en gris, et une mesure courte pour
+     qu'il se lise d'un regard. */
+  .chapo {
+    max-width: 58ch;
+    margin-top: 0.5rem;
+    color: var(--color-gris);
+    font-size: var(--text-corps);
+    line-height: 1.6;
   }
 }

@@ -46,41 +46,41 @@ export default function Filters({ onFilterChange }) {
   const classeSelect = "w-full border border-trait bg-carte px-3 text-meta text-encre";
 
   return (
-    <div className="sticky top-24 border border-trait bg-carte p-5">
+    <div className="sticky top-24 border border-trait rounded-carte bg-carte p-5">
       <div className="mb-5 flex items-center justify-between gap-4">
-        <h2 className="text-meta text-gris">filtres</h2>
+        <h2 className="text-meta text-gris">Filtres</h2>
         <button type="button" onClick={reinitialiser} className="flex items-center text-meta text-gris underline underline-offset-4">
-          tout effacer
+          Tout Effacer
         </button>
       </div>
 
       <div className="flex flex-col gap-4">
         <label>
-          <span className="mb-2 block text-meta text-gris">arrondissement</span>
+          <span className="mb-2 block text-meta text-gris">Arrondissement</span>
           <select value={filtres.arrondissement} onChange={(e) => changer("arrondissement", e.target.value)} className={classeSelect}>
-            <option value="">tous</option>
+            <option value="">Tous</option>
             {ARRONDISSEMENTS.map((arr) => <option key={arr} value={arr}>{arr}</option>)}
           </select>
         </label>
 
         <label>
-          <span className="mb-2 block text-meta text-gris">prix</span>
+          <span className="mb-2 block text-meta text-gris">Prix</span>
           <select value={filtres.prix} onChange={(e) => changer("prix", e.target.value)} className={classeSelect}>
-            <option value="">tous</option>
+            <option value="">Tous</option>
             {PRIX.map(([valeur, libelle]) => <option key={valeur} value={valeur}>{libelle}</option>)}
           </select>
         </label>
 
         <label>
-          <span className="mb-2 block text-meta text-gris">ambiance</span>
+          <span className="mb-2 block text-meta text-gris">Ambiance</span>
           <select value={filtres.ambiance} onChange={(e) => changer("ambiance", e.target.value)} className={classeSelect}>
-            <option value="">toutes</option>
+            <option value="">Toutes</option>
             {AMBIANCES.map((ambiance) => <option key={ambiance} value={ambiance}>{ambiance}</option>)}
           </select>
         </label>
 
         <fieldset className="border-t border-trait-fort pt-4">
-          <legend className="mb-2 text-meta text-gris">équipements</legend>
+          <legend className="mb-2 text-meta text-gris">Équipements</legend>
           <div className="flex flex-col">
             {EQUIPEMENTS.map(([champ, libelle]) => (
               <label key={champ} className="flex min-h-11 items-center gap-3 text-meta text-encre">

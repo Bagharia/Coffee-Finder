@@ -113,13 +113,13 @@ export default function Admin() {
     <div className="mx-auto max-w-5xl px-6 py-12">
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-trait pb-6">
         <div>
-          <h1 className="text-section text-encre">administration</h1>
-          <p className="mt-1 text-meta text-gris">
+          <h1 className="text-titre text-encre">Administration</h1>
+          <p className="chapo">
             {chargement ? "on regarde…" : `${cafes.length} adresse${cafes.length > 1 ? "s" : ""} au guide`}
           </p>
         </div>
-        <button type="button" onClick={ouvrirAjout} className="flex items-center bg-plaque px-6 text-white">
-          ajouter une adresse
+        <button type="button" onClick={ouvrirAjout} className="bouton">
+          Ajouter Une Adresse
         </button>
       </div>
 
@@ -161,14 +161,14 @@ export default function Admin() {
                   <p className="text-meta text-gris">{cafe.arrondissement}</p>
                 </div>
 
-                {cafe.coup_de_coeur === 1 && <span className="text-meta text-rouge">coup de cœur</span>}
-                {!cafe.verdict && <span className="text-meta text-gris">sans verdict</span>}
+                {cafe.coup_de_coeur === 1 && <span className="text-meta text-rouge">Coup De Cœur</span>}
+                {!cafe.verdict && <span className="text-meta text-gris">Sans Verdict</span>}
 
                 <button type="button" onClick={() => ouvrirModification(cafe)} className="flex items-center text-meta text-encre underline underline-offset-4">
-                  modifier
+                  Modifier
                 </button>
                 <button type="button" onClick={() => supprimer(cafe)} className="flex items-center text-meta text-rouge underline underline-offset-4">
-                  mettre à la corbeille
+                  Mettre À La Corbeille
                 </button>
               </li>
             ))}

@@ -42,8 +42,8 @@ export default function CategoryPage() {
     <div className="bg-papier">
       <div className="border-b border-trait px-6 py-12">
         <div className="mx-auto max-w-5xl">
-          <h1 className="text-section text-encre">{specialite.toLowerCase()}</h1>
-          <p className="mt-1 text-meta text-gris" aria-live="polite">
+          <h1 className="text-titre text-encre">{specialite.toLowerCase()}</h1>
+          <p className="chapo" aria-live="polite">
             {chargement
               ? "on regarde…"
               : `${total} adresse${total > 1 ? "s" : ""} à paris`}
@@ -65,16 +65,16 @@ export default function CategoryPage() {
             <p className="text-corps text-encre">
               aucune adresse en {specialite.toLowerCase()} dans le guide pour l&apos;instant.
             </p>
-            <Link to="/cafes" className="mt-6 inline-flex min-h-11 items-center bg-plaque px-6 text-white">
-              parcourir tout le guide
+            <Link to="/cafes" className="bouton mt-6">
+              Parcourir Tout Le Guide
             </Link>
           </div>
         ) : (
           <>
             <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {cafes.map((cafe, index) => (
-                <li key={cafe.id}>
-                  <CafeCard cafe={cafe} prioritaire={index < 4} />
+                <li key={cafe.id} className={index === 0 ? "sm:col-span-2" : undefined}>
+                  <CafeCard cafe={cafe} prioritaire={index < 4} vedette={index === 0} />
                 </li>
               ))}
             </ul>
@@ -85,7 +85,7 @@ export default function CategoryPage() {
                   type="button"
                   onClick={chargerPlus}
                   disabled={chargementSuite}
-                  className="flex min-h-11 items-center border border-trait-fort px-6 text-encre disabled:opacity-60"
+                  className="bouton-secondaire"
                 >
                   {chargementSuite ? "on charge…" : "voir la suite"}
                 </button>

@@ -49,8 +49,8 @@ export default function Register() {
 
   return (
     <div className="mx-auto max-w-sm px-6 py-16">
-      <h1 className="text-section text-encre">créer un compte</h1>
-      <p className="mt-1 text-meta text-gris">pour garder vos adresses et donner votre avis.</p>
+      <h1 className="text-titre text-encre">Créer Un Compte</h1>
+      <p className="chapo">Pour Garder Vos Adresses Et Donner Votre Avis.</p>
 
       {erreur && <p className="mt-6 text-meta text-rouge">{erreur}</p>}
 
@@ -64,12 +64,12 @@ export default function Register() {
             onChange={changer}
             autoComplete="username"
             required
-            className="w-full border border-trait bg-carte px-3 text-corps text-encre"
+            className="w-full border border-trait rounded-carte bg-carte px-3 text-corps text-encre"
           />
         </label>
 
         <label>
-          <span className="mb-2 block text-meta text-gris">email</span>
+          <span className="mb-2 block text-meta text-gris">Email</span>
           <input
             type="email"
             name="email"
@@ -77,7 +77,7 @@ export default function Register() {
             onChange={changer}
             autoComplete="email"
             required
-            className="w-full border border-trait bg-carte px-3 text-corps text-encre"
+            className="w-full border border-trait rounded-carte bg-carte px-3 text-corps text-encre"
           />
         </label>
 
@@ -92,12 +92,12 @@ export default function Register() {
             onChange={changer}
             autoComplete="new-password"
             required
-            className="w-full border border-trait bg-carte px-3 text-corps text-encre"
+            className="w-full border border-trait rounded-carte bg-carte px-3 text-corps text-encre"
           />
         </label>
 
         <label>
-          <span className="mb-2 block text-meta text-gris">confirmation</span>
+          <span className="mb-2 block text-meta text-gris">Confirmation</span>
           <input
             type="password"
             name="confirmation"
@@ -105,18 +105,18 @@ export default function Register() {
             onChange={changer}
             autoComplete="new-password"
             required
-            className="w-full border border-trait bg-carte px-3 text-corps text-encre"
+            className="w-full border border-trait rounded-carte bg-carte px-3 text-corps text-encre"
           />
         </label>
 
-        <button type="submit" disabled={enCours} className="mt-2 flex items-center justify-center bg-plaque px-6 text-white disabled:opacity-60">
+        <button type="submit" disabled={enCours} className="bouton mt-2">
           {enCours ? "création…" : "créer mon compte"}
         </button>
       </form>
 
       <p className="mt-8 text-meta text-gris">
         déjà un compte ?{" "}
-        <Link to="/login" className="underline underline-offset-4">se connecter</Link>
+        <Link to="/login" className="underline underline-offset-4">Se Connecter</Link>
       </p>
     </div>
   );

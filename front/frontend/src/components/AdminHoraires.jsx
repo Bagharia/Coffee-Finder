@@ -28,7 +28,7 @@ export default function AdminHoraires({ plages, onChange }) {
 
   return (
     <fieldset>
-      <legend className="mb-2 text-meta text-gris">horaires</legend>
+      <legend className="mb-2 text-meta text-gris">Horaires</legend>
 
       <div className="flex flex-col gap-2">
         {JOURS.map((nom, index) => {
@@ -41,7 +41,7 @@ export default function AdminHoraires({ plages, onChange }) {
             <div key={jour} className="flex flex-wrap items-center gap-3 border-b border-trait py-2">
               <span className="w-24 shrink-0 text-meta text-gris">{nom}</span>
 
-              {duJour.length === 0 && <span className="text-meta text-gris">fermé</span>}
+              {duJour.length === 0 && <span className="text-meta text-gris">Fermé</span>}
 
               {duJour.map((plage) => (
                 <span key={plage.position} className="flex items-center gap-2">
@@ -66,7 +66,7 @@ export default function AdminHoraires({ plages, onChange }) {
                     aria-label={`retirer cette plage du ${nom}`}
                     className="flex h-11 w-11 items-center justify-center text-meta text-gris"
                   >
-                    retirer
+                    Retirer
                   </button>
                 </span>
               ))}
@@ -76,7 +76,7 @@ export default function AdminHoraires({ plages, onChange }) {
                 onClick={() => ajouter(jour)}
                 className="flex h-11 items-center text-meta text-encre underline"
               >
-                ajouter une plage
+                Ajouter Une Plage
               </button>
             </div>
           );
@@ -86,13 +86,13 @@ export default function AdminHoraires({ plages, onChange }) {
       <button
         type="button"
         onClick={copierLundi}
-        className="mt-3 flex h-11 items-center border border-trait-fort px-4 text-meta text-encre"
+        className="bouton-secondaire mt-3"
       >
-        copier le lundi sur toute la semaine
+        Copier Le Lundi Sur Toute La Semaine
       </button>
 
       <p className="mt-2 text-meta text-gris">
-        Une fermeture après minuit s'écrit telle quelle : 8h00 – 01h30.
+        Une Fermeture Après Minuit S'écrit Telle Quelle : 8h00 – 01h30.
       </p>
     </fieldset>
   );

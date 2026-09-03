@@ -47,7 +47,7 @@ export default function ProfileMotDePasse() {
   return (
     <form onSubmit={envoyer} className="flex max-w-sm flex-col gap-3">
       <label>
-        <span className="mb-2 block text-meta text-gris">mot de passe actuel</span>
+        <span className="mb-2 block text-meta text-gris">Mot De Passe Actuel</span>
         <input type="password" autoComplete="current-password" value={valeurs.actuel} onChange={modifier("actuel")} required className={champ} />
       </label>
 
@@ -59,14 +59,14 @@ export default function ProfileMotDePasse() {
       </label>
 
       <label>
-        <span className="mb-2 block text-meta text-gris">confirmation</span>
+        <span className="mb-2 block text-meta text-gris">Confirmation</span>
         <input type="password" autoComplete="new-password" value={valeurs.confirmation} onChange={modifier("confirmation")} required className={champ} />
       </label>
 
       {erreur && <p className="text-meta text-rouge">{erreur}</p>}
-      {succes && <p className="text-meta text-encre">mot de passe modifié.</p>}
+      {succes && <p className="text-meta text-encre">Mot De Passe Modifié.</p>}
 
-      <button type="submit" disabled={enCours} className="mt-2 flex items-center justify-center bg-plaque px-6 text-white disabled:opacity-60">
+      <button type="submit" disabled={enCours} className="bouton mt-2">
         {enCours ? "modification…" : "modifier"}
       </button>
     </form>

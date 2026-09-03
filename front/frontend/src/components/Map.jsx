@@ -144,7 +144,7 @@ export default function Map() {
         {placables.length === 0 ? (
           <div className="flex h-full items-center justify-center bg-papier p-8">
             <p className="mesure text-corps text-encre">
-              aucune adresse à placer avec ces filtres. élargir la recherche, ou proposer la vôtre.
+              Aucune Adresse À Placer Avec Ces Filtres. Élargir La Recherche, Ou Proposer La Vôtre.
             </p>
           </div>
         ) : (

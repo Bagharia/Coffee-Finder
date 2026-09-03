@@ -53,14 +53,14 @@ export default function AdminImage({ cafeId, nom, imageUrl, onChangeUrl, onTelev
 
   return (
     <fieldset>
-      <legend className="mb-2 text-meta text-gris">photo</legend>
+      <legend className="mb-2 text-meta text-gris">Photo</legend>
 
       {imageUrl && (
         <div className="mb-3 flex items-start gap-4">
           <img
             src={imageUrl}
             alt={nom ? `photo actuelle de ${nom}` : "photo actuelle de l'adresse"}
-            className="h-24 w-32 shrink-0 border border-trait object-cover"
+            className="h-24 w-32 shrink-0 border border-trait rounded-carte object-cover"
           />
           {cafeId && (
             <button
@@ -69,7 +69,7 @@ export default function AdminImage({ cafeId, nom, imageUrl, onChangeUrl, onTelev
               disabled={enCours}
               className="flex min-h-11 items-center text-meta text-rouge underline underline-offset-4 disabled:opacity-50"
             >
-              retirer la photo
+              Retirer La Photo
             </button>
           )}
         </div>
@@ -78,7 +78,7 @@ export default function AdminImage({ cafeId, nom, imageUrl, onChangeUrl, onTelev
       {cafeId ? (
         <label className="flex flex-col gap-2">
           <span className="text-meta text-gris">
-            téléverser un fichier — JPEG, PNG, WebP ou AVIF, 5 Mo au maximum
+            Téléverser Un Fichier — JPEG, PNG, WebP Ou AVIF, 5 Mo Au Maximum
           </span>
           <input
             ref={champFichier}
@@ -103,11 +103,11 @@ export default function AdminImage({ cafeId, nom, imageUrl, onChangeUrl, onTelev
           type="url"
           value={imageUrl}
           onChange={(e) => onChangeUrl(e.target.value)}
-          className="w-full border border-trait-fort bg-carte px-3 text-corps text-encre"
+          className="w-full border border-trait-fort rounded-carte bg-carte px-3 text-corps text-encre"
         />
       </label>
 
-      {enCours && <p className="mt-2 text-meta text-gris">envoi en cours…</p>}
+      {enCours && <p className="mt-2 text-meta text-gris">Envoi En Cours…</p>}
       {erreur && <p className="mt-2 text-meta text-rouge">{erreur}</p>}
     </fieldset>
   );

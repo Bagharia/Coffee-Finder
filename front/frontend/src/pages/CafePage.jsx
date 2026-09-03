@@ -58,14 +58,14 @@ export default function CafePage() {
       <div className="border-b border-trait px-6 py-12">
         <div className="mx-auto flex max-w-6xl flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-section text-encre">le guide</h1>
-            <p className="mt-1 text-meta text-gris" aria-live="polite">{compte}</p>
+            <h1 className="text-titre text-encre">Le Guide</h1>
+            <p className="chapo" aria-live="polite">{compte}</p>
           </div>
           <button
             type="button"
             onClick={tirerAuSort}
             disabled={tirageEnCours}
-            className="flex min-h-11 items-center border border-trait-fort px-6 text-encre disabled:opacity-60"
+            className="bouton-secondaire"
           >
             {tirageEnCours ? "on cherche…" : "au hasard"}
           </button>
@@ -90,22 +90,25 @@ export default function CafePage() {
           ) : adresses.length === 0 ? (
             <div className="mesure">
               <p className="text-corps text-encre">
-                aucune adresse ne correspond à ces filtres. en retirer un, ou proposer la vôtre.
+                Aucune Adresse Ne Correspond À Ces Filtres. En Retirer Un, Ou Proposer La Vôtre.
               </p>
               <button
                 type="button"
                 onClick={() => setFiltres(FILTRES_VIDES)}
-                className="mt-6 flex min-h-11 items-center bg-plaque px-6 text-white"
+                className="bouton mt-6"
               >
-                effacer les filtres
+                Effacer Les Filtres
               </button>
             </div>
           ) : (
             <>
+              {/* La première adresse occupe deux colonnes : une grille de
+                  vignettes identiques ne dit pas par où commencer, et les
+                  photos sont ce que ce guide a de plus beau. */}
               <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {adresses.map((cafe, index) => (
-                  <li key={cafe.id}>
-                    <CafeCard cafe={cafe} prioritaire={index < 3} />
+                  <li key={cafe.id} className={index === 0 ? "sm:col-span-2" : undefined}>
+                    <CafeCard cafe={cafe} prioritaire={index < 3} vedette={index === 0} />
                   </li>
                 ))}
               </ul>
@@ -116,7 +119,7 @@ export default function CafePage() {
                     type="button"
                     onClick={chargerPlus}
                     disabled={chargementSuite}
-                    className="flex min-h-11 items-center border border-trait-fort px-6 text-encre disabled:opacity-60"
+                    className="bouton-secondaire"
                   >
                     {chargementSuite ? "on charge…" : "voir la suite"}
                   </button>

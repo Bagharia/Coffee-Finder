@@ -17,7 +17,7 @@ export default function MapFiltres({ filtres, onChange, total }) {
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-trait bg-carte p-3">
       <button type="button" onClick={() => onChange({ ...filtres, specialite: "" })} className={classe(!filtres.specialite)}>
-        toutes
+        Toutes
       </button>
 
       {SPECIALITES.map((specialite) => (
@@ -32,13 +32,13 @@ export default function MapFiltres({ filtres, onChange, total }) {
       ))}
 
       <label className="flex items-center gap-2 text-meta text-encre">
-        <span className="sr-only">arrondissement</span>
+        <span className="sr-only">Arrondissement</span>
         <select
           value={filtres.arrondissement}
           onChange={(e) => onChange({ ...filtres, arrondissement: e.target.value })}
-          className="border border-trait-fort bg-carte px-3 text-meta text-encre"
+          className="border border-trait-fort rounded-carte bg-carte px-3 text-meta text-encre"
         >
-          <option value="">tous les arrondissements</option>
+          <option value="">Tous Les Arrondissements</option>
           {ARRONDISSEMENTS.map((arr) => (
             <option key={arr} value={arr}>{arr}</option>
           ))}
@@ -51,7 +51,7 @@ export default function MapFiltres({ filtres, onChange, total }) {
         onClick={() => onChange({ ...filtres, wifi: !filtres.wifi })}
         className={classe(filtres.wifi)}
       >
-        wifi
+        Wifi
       </button>
 
       <p className="ml-auto text-meta text-gris">

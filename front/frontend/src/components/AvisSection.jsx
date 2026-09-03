@@ -95,7 +95,7 @@ export default function AvisSection({ cafeId }) {
   return (
     <section>
       <div className="mb-6 flex items-end justify-between gap-4">
-        <h2 className="text-section text-encre">avis des lecteurs</h2>
+        <h2 className="text-section text-encre">Avis Des Lecteurs</h2>
         {moyenne !== null && (
           <p className="text-meta text-gris">
             {String(moyenne).replace(".", ",")} sur 5, {total} avis
@@ -106,9 +106,9 @@ export default function AvisSection({ cafeId }) {
       {connecte ? (
         <div className="mb-8">
           {formulaireOuvert ? (
-            <form onSubmit={envoyer} className="border border-trait p-5">
+            <form onSubmit={envoyer} className="border border-trait rounded-carte p-5">
               <fieldset>
-                <legend className="mb-3 text-meta text-gris">votre note</legend>
+                <legend className="mb-3 text-meta text-gris">Votre Note</legend>
                 <div className="flex gap-2">
                   {NOTES.map((valeur) => (
                     <button
@@ -127,35 +127,35 @@ export default function AvisSection({ cafeId }) {
               </fieldset>
 
               <label className="mt-5 block">
-                <span className="mb-2 block text-meta text-gris">votre commentaire</span>
+                <span className="mb-2 block text-meta text-gris">Votre Commentaire</span>
                 <textarea
                   value={commentaire}
                   onChange={(e) => setCommentaire(e.target.value)}
                   rows={4}
                   maxLength={2000}
-                  className="w-full border border-trait-fort bg-carte p-3 text-corps text-encre"
+                  className="w-full border border-trait-fort rounded-carte bg-carte p-3 text-corps text-encre"
                 />
               </label>
 
               {erreurEnvoi && <p className="mt-3 text-meta text-rouge">{erreurEnvoi}</p>}
 
               <div className="mt-4 flex flex-wrap gap-3">
-                <button type="submit" disabled={envoiEnCours} className="flex items-center bg-plaque px-6 text-white disabled:opacity-60">
+                <button type="submit" disabled={envoiEnCours} className="bouton">
                   {envoiEnCours ? "envoi…" : "publier"}
                 </button>
-                <button type="button" onClick={() => setFormulaireOuvert(false)} className="flex items-center border border-trait-fort px-6 text-encre">
-                  annuler
+                <button type="button" onClick={() => setFormulaireOuvert(false)} className="bouton-secondaire">
+                  Annuler
                 </button>
               </div>
             </form>
           ) : (
             <div className="flex flex-wrap gap-3">
-              <button type="button" onClick={() => setFormulaireOuvert(true)} className="flex items-center border border-trait-fort px-6 text-encre">
+              <button type="button" onClick={() => setFormulaireOuvert(true)} className="bouton-secondaire">
                 {monAvis ? "modifier mon avis" : "donner mon avis"}
               </button>
               {monAvis && (
                 <button type="button" onClick={supprimer} className="flex items-center px-4 text-meta text-rouge">
-                  supprimer mon avis
+                  Supprimer Mon Avis
                 </button>
               )}
             </div>
@@ -163,7 +163,7 @@ export default function AvisSection({ cafeId }) {
         </div>
       ) : (
         <p className="mb-8 text-meta text-gris">
-          <Link to="/login" className="underline underline-offset-4">se connecter</Link> pour donner son avis.
+          <Link to="/login" className="underline underline-offset-4">Se Connecter</Link> Pour Donner Son Avis.
         </p>
       )}
 

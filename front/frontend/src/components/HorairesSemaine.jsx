@@ -27,9 +27,9 @@ export default function HorairesSemaine({ plages }) {
   return (
     <section className="mt-10 border-t border-trait pt-6">
       <div className="flex items-baseline justify-between gap-4">
-        <h2 className="text-meta text-gris">horaires</h2>
-        {ouvert === true && <p className="text-meta text-encre">ouvert</p>}
-        {ouvert === false && <p className="text-meta text-rouge">fermé</p>}
+        <h2 className="text-meta text-gris">Horaires</h2>
+        {ouvert === true && <p className="text-meta text-encre">Ouvert</p>}
+        {ouvert === false && <p className="text-meta text-rouge">Fermé</p>}
       </div>
 
       <dl className="mt-3">

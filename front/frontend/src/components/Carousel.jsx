@@ -11,8 +11,10 @@ import CafeCard from "./CafeCard";
 export default function Carousel({ cafes }) {
   return (
     <ul className="-mx-6 flex snap-x snap-mandatory gap-5 overflow-x-auto px-6 pb-4">
+      {/* 320 px et non 256 : les cartes portent maintenant deux lignes de
+          verdict, qui se serraient à quatre ou cinq mots par ligne. */}
       {cafes.map((cafe, index) => (
-        <li key={cafe.id} className="w-64 shrink-0 snap-start">
+        <li key={cafe.id} className="w-80 shrink-0 snap-start">
           {/* Seule la première image est prioritaire : les suivantes sont hors
               écran au chargement. */}
           <CafeCard cafe={cafe} prioritaire={index === 0} />

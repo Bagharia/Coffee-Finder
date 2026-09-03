@@ -32,8 +32,7 @@ Ces points ne se rediscutent pas, ils se respectent.
 **Le site tient deux registres qui ne se mélangent jamais.**
 
 - **Repérage.** Tout ce qui sert à trouver un lieu : plaque, nom, arrondissement,
-  critères, prix, horaires, boutons, navigation, états. Sans-serif, bas de casse,
-  compact, sec. C'est de la signalétique urbaine — ça se lit debout, à bout de
+  critères, prix, horaires, boutons, navigation, états. Sans-serif, compact, sec. C'est de la signalétique urbaine — ça se lit debout, à bout de
   bras, en marchant.
 - **Voix.** Uniquement les mots de Wendy. Serif italique, grand corps, ligne
   courte. C'est de la revue — ça se lit posé, et ça se reconnaît sans étiquette.
@@ -44,7 +43,7 @@ phrase de Wendy est de la voix. Un bouton est du repérage, toujours. Si un
 élément semble appartenir aux deux, c'est qu'il faut le couper en deux.
 
 L'ancrage formel du registre de repérage est la **plaque de rue parisienne** :
-rectangle vert, filet blanc en retrait, texte blanc en bas de casse. C'est du
+rectangle vert, filet blanc en retrait, texte blanc. C'est du
 mobilier de repérage, donc cohérent avec un produit qui sert à trouver un
 endroit, et c'est parisien sans passer par le cliché touristique.
 
@@ -112,8 +111,19 @@ d'où le plancher de taille ci-dessous.
 
 Règles fermes :
 
-- **Bas de casse partout.** Pas de capitales espacées en surtitre. Les plaques de
-  rue parisiennes sont elles-mêmes en bas de casse.
+- **Une majuscule au début de chaque mot** dans les textes d'interface —
+  navigation, titres, boutons, libellés, états. Décision du 2026-09-03, qui
+  revient sur le bas de casse d'origine.
+
+  La règle précédente disait : « bas de casse partout, les plaques de rue
+  parisiennes sont elles-mêmes en bas de casse ». Elle est conservée ici pour
+  mémoire, parce qu'elle avait une raison — le bas de casse rattachait le
+  registre de repérage à la plaque de rue. Ce lien est rompu volontairement.
+
+  La capitalisation est écrite dans les textes eux-mêmes, jamais par
+  `text-transform: capitalize` : la transformation CSS s'appliquerait aussi aux
+  noms venant de la base et « Bocal et Carafe » deviendrait « Bocal Et Carafe ».
+- Pas de capitales espacées en surtitre.
 - Corps sous 70 caractères par ligne, voix sous 46.
 - Pas de mise en exergue d'un mot isolé dans un titre.
 - Pas de chaînes de métadonnées collées avec des points médians. Une donnée par

@@ -66,19 +66,24 @@ exports.addOrUpdateAvis = async (req, res) => {
         }
 
         // Repose sur l'index UNIQUE(user_id, cafe_id) posé par la migration 003.
-        await db.query(
+        const [ecriture] = await db.query(
             `INSERT INTO avis (user_id, cafe_id, note, commentaire)
              VALUES (?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE note = VALUES(note), commentaire = VALUES(commentaire)`,
             [userId, cafeId, Number(note), commentaire || null]
         );
 
+        // Convention MySQL sur ON DUPLICATE KEY : 1 ligne touchée = insertion,
+        // 2 = mise à jour. Répondre 201 Created sur une modification mentirait
+        // au client, qui n'a aucun autre moyen de savoir ce qui s'est passé.
+        const creation = ecriture.affectedRows === 1;
+
         const [rows] = await db.query(
             'SELECT id, note, commentaire, created_at FROM avis WHERE user_id = ? AND cafe_id = ?',
             [userId, cafeId]
         );
 
-        return res.status(201).json(rows[0]);
+        return res.status(creation ? 201 : 200).json(rows[0]);
     } catch (err) {
         return echec(res, err, 'enregistrement d\'un avis');
     }

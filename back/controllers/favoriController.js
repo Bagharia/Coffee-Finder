@@ -1,6 +1,7 @@
 const db = require('../config/db');
 const { lirePagination, reponsePaginee } = require('../utils/validation');
 const journal = require('../utils/journal');
+const { COLONNES_CAFE, attacherHoraires } = require('../utils/cafes');
 
 const echec = (res, err, contexte) => {
     journal.erreur(`[favoris] ${contexte} :`, err);
@@ -70,29 +71,8 @@ exports.getUserFavoris = async (req, res) => {
             [userId]
         );
 
-        // Colonnes listées et aliasées : cafes.id et criteres_cafe.id
-        // s'écraseraient l'une l'autre sur un SELECT *.
         const [rows] = await db.query(
-            `SELECT cafes.id AS id,
-                    cafes.nom AS nom,
-                    cafes.arrondissement AS arrondissement,
-                    cafes.adresse AS adresse,
-                    cafes.description AS description,
-                    cafes.image_url AS image_url,
-                    cafes.latitude AS latitude,
-                    cafes.longitude AS longitude,
-                    cafes.verdict AS verdict,
-                    cafes.coup_de_coeur AS coup_de_coeur,
-                    criteres_cafe.id AS critere_id,
-                    criteres_cafe.nb_personnes AS nb_personnes,
-                    criteres_cafe.horaires AS horaires,
-                    criteres_cafe.specialite AS specialite,
-                    criteres_cafe.prix AS prix,
-                    criteres_cafe.wifi AS wifi,
-                    criteres_cafe.prises AS prises,
-                    criteres_cafe.travailler AS travailler,
-                    criteres_cafe.theme AS theme,
-                    criteres_cafe.ambiance AS ambiance,
+            `SELECT ${COLONNES_CAFE},
                     favoris.created_at AS favori_date
              FROM favoris
              JOIN cafes ON favoris.cafe_id = cafes.id
@@ -102,6 +82,8 @@ exports.getUserFavoris = async (req, res) => {
              LIMIT ? OFFSET ?`,
             [userId, limite, offset]
         );
+
+        await attacherHoraires(rows);
 
         return res.json(reponsePaginee(rows, { page, limite }, total));
     } catch (err) {

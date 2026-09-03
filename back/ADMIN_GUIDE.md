@@ -1,69 +1,109 @@
-# Guide d'administration - Coffee Finder
+# Guide d'administration — SpotThePlace
 
-## Configuration de la base de données
+## Préparer la base
 
-1. Exécutez le script SQL pour créer la table users :
-```sql
-mysql -u votre_user -p votre_database < setup_admin.sql
+Les migrations ne s'appliquent plus à la main. Depuis `back/`, une seule commande :
+
+```bash
+npm run db:migrate
+```
+
+Elle applique, dans l'ordre, les fichiers `db/0XX_*.sql` qui manquent, et note
+chacun dans la table `schema_migrations`. Relancée, elle ne fait rien. La base
+visée est celle du `.env` — les fichiers SQL ne contiennent plus de nom de base
+en dur, sans quoi ils seraient inapplicables chez un hébergeur.
+
+```bash
+npm run db:migrate -- --etat       # ce qui est appliqué, ce qui attend
+npm run db:migrate -- --baseline   # tout marquer appliqué sans exécuter
+```
+
+`--baseline` sert une fois, sur une base montée à la main avant l'arrivée du
+runner : elle a le bon schéma mais pas la table de suivi. L'utiliser sur une
+base réellement vide la laisserait vide en la déclarant à jour.
+
+Le jeu de données de démonstration reste séparé, et n'est pas une migration :
+
+```bash
+mysql -u <user> -p <base> < db/seed.sql   # jamais en production
 ```
 
 ## Créer un compte administrateur
 
-### Via API (recommandé)
+`POST /api/users/register` crée **toujours** un compte `user`. Le champ `role`
+envoyé dans le corps de la requête est ignoré : sans ça, n'importe qui se
+fabriquerait un compte admin depuis le formulaire d'inscription.
 
-Utilisez un outil comme Postman, Thunder Client ou curl :
+La promotion se fait en base, à la main, et c'est voulu :
 
 ```bash
+# 1. créer le compte normalement
 curl -X POST http://localhost:3000/api/users/register \
   -H "Content-Type: application/json" \
-  -d '{
-    "email": "admin@coffee-finder.com",
-    "password": "VotreMotDePasseSecurise123!",
-    "nom": "Admin",
-    "role": "admin"
-  }'
+  -d '{"email":"admin@spotheplace.fr","password":"un-mot-de-passe-long","username":"Wendy"}'
 ```
 
-Vous recevrez une réponse avec un token JWT :
-```json
-{
-  "message": "Utilisateur créé avec succès",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": 1,
-    "email": "admin@coffee-finder.com",
-    "nom": "Admin",
-    "role": "admin"
-  }
-}
+```sql
+-- 2. le promouvoir
+UPDATE users SET role = 'admin' WHERE email = 'admin@spotheplace.fr';
 ```
 
-## Se connecter en tant qu'admin
+La promotion prend effet immédiatement, sans reconnexion : le rôle est relu en
+base à chaque requête et non pris dans le jeton. Une rétrogradation coupe donc
+l'accès tout de suite, au lieu d'attendre l'expiration du jeton.
+
+## Se connecter
+
+La session est un cookie `httpOnly` : l'API ne renvoie plus de jeton dans le
+corps de la réponse. En ligne de commande, il faut donc un bocal à cookies.
 
 ```bash
-curl -X POST http://localhost:3000/api/users/login \
+curl -c session.txt -X POST http://localhost:3000/api/users/login \
   -H "Content-Type: application/json" \
-  -d '{
-    "email": "admin@coffee-finder.com",
-    "password": "VotreMotDePasseSecurise123!"
-  }'
+  -d '{"email":"admin@spotheplace.fr","password":"un-mot-de-passe-long"}'
 ```
 
-## Utiliser le token pour ajouter des cafés
+Les appels suivants réutilisent ce fichier avec `-b session.txt`. L'en-tête
+`Authorization: Bearer <jeton>` reste accepté pour les scripts qui préfèrent
+gérer leur jeton eux-mêmes.
 
-Une fois connecté, utilisez le token reçu pour créer des cafés :
+Le mot de passe fait au minimum 8 caractères, à l'inscription comme au
+changement. Après 10 tentatives de connexion ratées depuis la même adresse IP
+en 15 minutes, l'API répond 429.
+
+Changer son mot de passe **déconnecte toutes les autres sessions** : la session
+qui fait la demande reçoit un jeton neuf, les autres reçoivent 401. C'est le
+but — on change son mot de passe quand on pense que quelqu'un d'autre a accès
+au compte.
+
+## Réinitialiser un mot de passe oublié
+
+Il n'y a pas de « mot de passe oublié » en libre-service : il faudrait envoyer
+un e-mail, donc une dépendance et un service d'envoi. La reprise en main se
+fait depuis `back/` :
 
 ```bash
-curl -X POST http://localhost:3000/api/cafes \
+npm run user:motdepasse -- admin@spotheplace.fr
+```
+
+Le script demande confirmation, propose un mot de passe lisible, le hache
+correctement et révoque les sessions ouvertes. Un `UPDATE` écrit à la main
+obligerait à hacher soi-même, et une erreur de coût ou de format n'apparaîtrait
+qu'au moment où la connexion échoue.
+
+## Ajouter une adresse
+
+```bash
+curl -b session.txt -X POST http://localhost:3000/api/cafes \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer VOTRE_TOKEN_ICI" \
   -d '{
     "nom": "Café Example",
     "arrondissement": "10e",
     "adresse": "123 Rue de la Paix",
-    "image_url": "https://example.com/image.jpg",
+    "description": "Deux salles, une terrasse au sud.",
+    "verdict": "Le meilleur matcha du quartier, et la seule table où on tient à deux avec un ordinateur.",
+    "coup_de_coeur": 1,
     "nb_personnes": "20-50",
-    "horaires": "8h-20h",
     "specialite": "Café,Matcha",
     "prix": "10-20",
     "wifi": 1,
@@ -74,30 +114,109 @@ curl -X POST http://localhost:3000/api/cafes \
   }'
 ```
 
-## Supprimer un café (admin uniquement)
+`nom` et `arrondissement` sont obligatoires. `prix` vaut `1-10`, `10-20` ou `20+`.
+L'adresse est géocodée automatiquement via Nominatim : si le géocodage échoue,
+la fiche est créée quand même mais n'apparaît pas sur la carte.
 
-```bash
-curl -X DELETE http://localhost:3000/api/cafes/1 \
-  -H "Authorization: Bearer VOTRE_TOKEN_ICI"
+### Les horaires
+
+`horaires` est un tableau de plages, pas une chaîne. Jour 1 = lundi … 7 =
+dimanche ; aucune plage pour un jour = fermé ce jour-là ; plusieurs plages pour
+un même jour = service coupé.
+
+```json
+"horaires": [
+  { "jour": 1, "ouverture": "09:00", "fermeture": "15:00" },
+  { "jour": 1, "ouverture": "18:00", "fermeture": "23:00" },
+  { "jour": 2, "ouverture": "08:00", "fermeture": "01:30" }
+]
 ```
 
-## Routes protégées
+La dernière ligne ferme après minuit : `fermeture` antérieure à `ouverture` se
+lit comme un débordement sur le lendemain, et c'est ainsi que « ouvert
+maintenant » la traite.
 
-Les routes suivantes nécessitent un token admin :
-- `POST /api/cafes` - Créer un café
-- `DELETE /api/cafes/:id` - Supprimer un café
+Sur un `PUT`, omettre `horaires` laisse les plages en place ; envoyer un
+tableau vide les efface. Ce sont deux intentions différentes.
 
-## Routes publiques
+## Modifier, supprimer
 
-Ces routes sont accessibles sans authentification :
-- `GET /api/cafes` - Liste de tous les cafés
-- `GET /api/cafes/:id` - Détails d'un café
-- `GET /api/cafes/search` - Recherche de cafés
-- `GET /api/cafes/specialite/:spec` - Cafés par spécialité
-- etc.
+```bash
+curl -b session.txt -X PUT http://localhost:3000/api/cafes/1 \
+  -H "Content-Type: application/json" \
+  -d '{"coup_de_coeur": 1}'
 
-## Routes utilisateurs
+curl -b session.txt -X DELETE http://localhost:3000/api/cafes/1
+```
 
-- `POST /api/users/register` - Créer un compte
-- `POST /api/users/login` - Se connecter
-- `GET /api/users/profile` - Voir son profil (token requis)
+Un `PUT` ne touche que les champs envoyés. Une suppression emporte les critères,
+les avis et les favoris de l'adresse (cascade).
+
+## Qui peut quoi
+
+| Routes | Accès |
+|---|---|
+| `POST`, `PUT`, `DELETE /api/cafes` | session admin |
+| `/api/favoris/*`, `POST`/`DELETE /api/avis/*`, `/api/users/profile`, `/api/users/change-password` | session utilisateur |
+| `GET /api/cafes/*`, `GET /api/avis/:cafeId`, `/api/health` | public |
+
+La liste complète des routes et le format des réponses sont dans le README à la
+racine du dépôt.
+
+---
+
+## Héberger l'API
+
+### Variables à renseigner
+
+Au-delà de celles du `.env.example`, quatre méritent une décision consciente.
+
+| Variable | En production |
+|---|---|
+| `NODE_ENV` | `production` — c'est elle qui pose le cookie de session en `secure` |
+| `TRUST_PROXY` | **obligatoire**, le serveur refuse de démarrer sans. `1` derrière un reverse proxy (tous les PaaS), `0` si l'API est exposée directement |
+| `DB_SSL` | `1` chez tout hébergeur de base managée, qui refuse le clair |
+| `NOMINATIM_CONTACT` | une adresse e-mail ou l'URL du site — sans elle, le géocodage depuis une IP de datacenter finit en 403 |
+
+`TRUST_PROXY` n'a pas de défaut sûr, d'où le refus de démarrer : à `0` derrière
+un proxy, `req.ip` vaut l'adresse du proxy et le limiteur de débit range tous
+les visiteurs dans le même compteur — dix échecs de connexion, venus de
+n'importe qui, verrouillent le site pour tout le monde pendant quinze minutes.
+À `1` sans proxy devant, n'importe qui usurpe son adresse via un en-tête
+`X-Forwarded-For` forgé et contourne la limite.
+
+### Où servir le front
+
+Le back ne sert que du JSON : il n'y a pas de `express.static`, le front est
+déployé séparément. Deux montages possibles, et le choix décide du cookie.
+
+**Même domaine** (`site.fr` pour le front, `site.fr/api` via un reverse proxy,
+ou `api.site.fr` en sous-domaine) : garder `VITE_API_URL=/api` et
+`COOKIE_SAMESITE=lax`. C'est le montage le plus simple et le plus sûr.
+
+**Deux domaines distincts** (front sur Vercel, API ailleurs) : mettre l'URL
+complète de l'API dans `VITE_API_URL`, `FRONTEND_URL` sur l'URL exacte du
+front, et `COOKIE_SAMESITE=none`. Ce dernier impose HTTPS **des deux côtés** :
+sans quoi le navigateur jette le cookie de session sans le moindre message, et
+la connexion échoue sans erreur visible.
+
+### Sonde de disponibilité
+
+Pointer le healthcheck de l'hébergeur sur `GET /api/health`. Elle interroge la
+base : `200 {"status":"ok"}` si tout répond, `503 {"status":"degrade"}` si la
+base est injoignable. En production, une base injoignable au démarrage arrête
+le processus en code 1 plutôt que de laisser l'API se déclarer disponible.
+
+### Redéploiement
+
+Le serveur intercepte `SIGTERM` : il cesse d'accepter des connexions, laisse
+finir les requêtes en vol, ferme le pool MySQL, puis sort. Au-delà de dix
+secondes, il se coupe de force. Rien à configurer, mais laisser à l'hébergeur
+au moins quinze secondes de délai d'arrêt s'il permet de le régler.
+
+### Limites connues
+
+Le limiteur de débit compte dans la mémoire du processus (`middleware/rateLimit.js`).
+Deux instances derrière un répartiteur, et chacune autorise le quota complet.
+Tant que l'API tourne en un seul exemplaire, c'est sans effet ; passer à
+plusieurs impose de sortir les compteurs en base ou dans un cache partagé.

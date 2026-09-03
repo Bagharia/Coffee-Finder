@@ -1,128 +1,100 @@
 import { useState } from "react";
 
-const EMPTY_FILTERS = {
+const FILTRES_VIDES = {
   arrondissement: "",
-  wifi: "",
   prix: "",
   ambiance: "",
-  travailler: "",
+  wifi: "",
   prises: "",
-  nouveautes: "",
+  travailler: "",
+  nouveautes: ""
 };
 
+const ARRONDISSEMENTS = Array.from({ length: 20 }, (_, i) => (i === 0 ? "1er" : `${i + 1}e`));
+
+const PRIX = [
+  ["1-10", "1–10 €"],
+  ["10-20", "10–20 €"],
+  ["20+", "20 € et plus"]
+];
+
+const AMBIANCES = ["sombre", "soft", "lumineux", "calme", "animée"];
+
+// Les critères s'écrivent : un pictogramme à côté de son propre libellé
+// n'ajoute rien (DA, section 7).
+const EQUIPEMENTS = [
+  ["nouveautes", "nouveautés"],
+  ["wifi", "wifi"],
+  ["prises", "prises"],
+  ["travailler", "pour travailler"]
+];
+
 export default function Filters({ onFilterChange }) {
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [filtres, setFiltres] = useState(FILTRES_VIDES);
 
-  const handleChange = (name, value) => {
-    const newFilters = { ...filters, [name]: value };
-    setFilters(newFilters);
-    onFilterChange(newFilters);
+  const changer = (champ, valeur) => {
+    const suivants = { ...filtres, [champ]: valeur };
+    setFiltres(suivants);
+    onFilterChange(suivants);
   };
 
-  const resetFilters = () => {
-    setFilters(EMPTY_FILTERS);
-    onFilterChange(EMPTY_FILTERS);
+  const reinitialiser = () => {
+    setFiltres(FILTRES_VIDES);
+    onFilterChange(FILTRES_VIDES);
   };
 
-  const selectClass = "w-full input-dark text-sm appearance-none";
-
-  const checkboxItems = [
-    { key: "nouveautes", label: "Nouveautés",          icon: "✨" },
-    { key: "wifi",       label: "WiFi disponible",     icon: "📶" },
-    { key: "prises",     label: "Prises électriques",  icon: "🔌" },
-    { key: "travailler", label: "Bon pour travailler", icon: "💼" },
-  ];
+  const classeSelect = "w-full border border-trait bg-carte px-3 text-meta text-encre";
 
   return (
-    <div className="bg-white border border-(--border) rounded-2xl p-5 sticky top-24">
-      <div className="flex justify-between items-center mb-5">
-        <h2 className="text-base font-bold text-(--text-primary)">Filtres</h2>
-        <button
-          onClick={resetFilters}
-          className="text-xs text-(--text-muted) hover:text-(--accent) transition-colors border border-(--border) hover:border-(--accent) px-3 py-1 rounded-full"
-        >
-          Réinitialiser
+    <div className="sticky top-24 border border-trait bg-carte p-5">
+      <div className="mb-5 flex items-center justify-between gap-4">
+        <h2 className="text-meta text-gris">filtres</h2>
+        <button type="button" onClick={reinitialiser} className="flex items-center text-meta text-gris underline underline-offset-4">
+          tout effacer
         </button>
       </div>
 
-      <div className="space-y-4">
-        <div>
-          <label className="block text-xs font-semibold text-(--text-muted) uppercase tracking-wider mb-2">
-            Arrondissement
-          </label>
-          <select
-            value={filters.arrondissement}
-            onChange={(e) => handleChange("arrondissement", e.target.value)}
-            className={selectClass}
-          >
-            <option value="">Tous</option>
-            {Array.from({ length: 20 }, (_, i) => {
-              const n = i + 1;
-              const label = n === 1 ? "1er" : `${n}e`;
-              return <option key={label} value={label}>{label}</option>;
-            })}
+      <div className="flex flex-col gap-4">
+        <label>
+          <span className="mb-2 block text-meta text-gris">arrondissement</span>
+          <select value={filtres.arrondissement} onChange={(e) => changer("arrondissement", e.target.value)} className={classeSelect}>
+            <option value="">tous</option>
+            {ARRONDISSEMENTS.map((arr) => <option key={arr} value={arr}>{arr}</option>)}
           </select>
-        </div>
+        </label>
 
-        <div>
-          <label className="block text-xs font-semibold text-(--text-muted) uppercase tracking-wider mb-2">
-            Prix
-          </label>
-          <select
-            value={filters.prix}
-            onChange={(e) => handleChange("prix", e.target.value)}
-            className={selectClass}
-          >
-            <option value="">Tous</option>
-            <option value="1-10">1–10 €</option>
-            <option value="10-20">10–20 €</option>
-            <option value="20+">20 €+</option>
+        <label>
+          <span className="mb-2 block text-meta text-gris">prix</span>
+          <select value={filtres.prix} onChange={(e) => changer("prix", e.target.value)} className={classeSelect}>
+            <option value="">tous</option>
+            {PRIX.map(([valeur, libelle]) => <option key={valeur} value={valeur}>{libelle}</option>)}
           </select>
-        </div>
+        </label>
 
-        <div>
-          <label className="block text-xs font-semibold text-(--text-muted) uppercase tracking-wider mb-2">
-            Ambiance
-          </label>
-          <select
-            value={filters.ambiance}
-            onChange={(e) => handleChange("ambiance", e.target.value)}
-            className={selectClass}
-          >
-            <option value="">Toutes</option>
-            <option value="sombre">Sombre</option>
-            <option value="soft">Soft</option>
-            <option value="lumineux">Lumineux</option>
-            <option value="calme">Calme</option>
-            <option value="animée">Animée</option>
+        <label>
+          <span className="mb-2 block text-meta text-gris">ambiance</span>
+          <select value={filtres.ambiance} onChange={(e) => changer("ambiance", e.target.value)} className={classeSelect}>
+            <option value="">toutes</option>
+            {AMBIANCES.map((ambiance) => <option key={ambiance} value={ambiance}>{ambiance}</option>)}
           </select>
-        </div>
+        </label>
 
-        <div className="space-y-3 pt-3 border-t border-(--border)">
-          <p className="text-xs font-semibold text-(--text-muted) uppercase tracking-wider">Équipements</p>
-          {checkboxItems.map((item) => (
-            <label key={item.key} className="flex items-center gap-3 cursor-pointer group">
-              <button
-                type="button"
-                onClick={() => handleChange(item.key, filters[item.key] ? "" : "1")}
-                className={`w-4.5 h-4.5 rounded border flex items-center justify-center transition-all shrink-0 ${
-                  filters[item.key]
-                    ? "bg-(--accent) border-(--accent)"
-                    : "border-(--border) group-hover:border-(--accent)"
-                }`}
-              >
-                {filters[item.key] && (
-                  <svg className="w-2.5 h-2.5" viewBox="0 0 12 12" fill="none">
-                    <path d="M2 6l3 3 5-5" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-              </button>
-              <span className="text-sm text-(--text-secondary) group-hover:text-(--text-primary) transition-colors">
-                {item.icon} {item.label}
-              </span>
-            </label>
-          ))}
-        </div>
+        <fieldset className="border-t border-trait pt-4">
+          <legend className="mb-2 text-meta text-gris">équipements</legend>
+          <div className="flex flex-col">
+            {EQUIPEMENTS.map(([champ, libelle]) => (
+              <label key={champ} className="flex min-h-11 items-center gap-3 text-meta text-encre">
+                <input
+                  type="checkbox"
+                  checked={filtres[champ] === "1"}
+                  onChange={() => changer(champ, filtres[champ] ? "" : "1")}
+                  className="h-4 w-4 accent-plaque"
+                />
+                {libelle}
+              </label>
+            ))}
+          </div>
+        </fieldset>
       </div>
     </div>
   );

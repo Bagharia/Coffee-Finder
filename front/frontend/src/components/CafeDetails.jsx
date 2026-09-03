@@ -1,234 +1,185 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { cafesAPI, favorisAPI, usersAPI } from "../services/api";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { cafesAPI, favorisAPI } from "../services/api";
+import { useAuth } from "../hooks/useAuth";
 import AvisSection from "./AvisSection";
+import HorairesSemaine from "./HorairesSemaine";
+import Coeur from "../icons/Coeur";
 
-const FALLBACK = "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800";
-
-const BADGE_STYLES = {
-  Matcha:       "bg-[rgba(90,122,74,0.12)] text-[#4A6B40] border border-[rgba(90,122,74,0.2)]",
-  "Bubble Tea": "bg-[rgba(139,92,246,0.10)] text-[#7C3AED] border border-[rgba(139,92,246,0.2)]",
-  Café:         "bg-[rgba(146,64,14,0.10)] text-[#92400E] border border-[rgba(146,64,14,0.2)]",
-  Thé:          "bg-[rgba(180,83,9,0.10)] text-[#B45309] border border-[rgba(180,83,9,0.2)]",
+const PRIX = {
+  "1-10": "1–10 €",
+  "10-20": "10–20 €",
+  "20+": "20 € et plus"
 };
 
-function InfoPanel({ label, value, icon }) {
-  if (!value) return null;
+/** Informations pratiques : un tableau serré, pas des cartes à pictogrammes. */
+function Pratique({ cafe }) {
+  const equipements = [
+    cafe.wifi === 1 && "wifi",
+    cafe.prises === 1 && "prises",
+    cafe.travailler === 1 && "pour travailler"
+  ].filter(Boolean);
+
+  const lignes = [
+    ["adresse", cafe.adresse],
+    ["arrondissement", cafe.arrondissement],
+    ["prix", cafe.prix ? (PRIX[cafe.prix] ?? cafe.prix) : null],
+    ["capacité", cafe.nb_personnes ? `${cafe.nb_personnes} personnes` : null],
+    ["spécialité", cafe.specialite?.split(",").map((s) => s.trim().toLowerCase()).join(", ")],
+    ["thème", cafe.theme?.toLowerCase()],
+    ["ambiance", cafe.ambiance?.toLowerCase()],
+    ["équipements", equipements.length > 0 ? equipements.join(", ") : null]
+  ].filter(([, valeur]) => Boolean(valeur));
+
+  if (lignes.length === 0) return null;
+
   return (
-    <div className="bg-white border border-(--border) rounded-2xl p-5">
-      <p className="text-xs text-(--text-muted) uppercase tracking-wider mb-2">{label}</p>
-      <p className="text-(--text-primary) font-semibold text-base flex items-center gap-2">
-        {icon && <span>{icon}</span>} {value}
-      </p>
-    </div>
+    <dl className="mt-10 border-t border-trait">
+      {lignes.map(([intitule, valeur]) => (
+        <div key={intitule} className="flex gap-6 border-b border-trait py-2.5">
+          <dt className="w-36 shrink-0 text-meta text-gris">{intitule}</dt>
+          <dd className="text-meta text-encre">{valeur}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
 export default function CafeDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { connecte } = useAuth();
+
   const [cafe, setCafe] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [isFav, setIsFav] = useState(false);
-  const [favLoading, setFavLoading] = useState(false);
-  const isAuth = usersAPI.isAuthenticated();
+  const [chargement, setChargement] = useState(true);
+  const [erreur, setErreur] = useState(null);
+  const [favori, setFavori] = useState(false);
+  const [favoriEnCours, setFavoriEnCours] = useState(false);
 
   useEffect(() => {
+    setChargement(true);
     cafesAPI.getById(id)
       .then(setCafe)
-      .catch((err) => { console.error(err); setError("Erreur lors du chargement du café"); })
-      .finally(() => setLoading(false));
+      .catch((err) => setErreur(err.message))
+      .finally(() => setChargement(false));
   }, [id]);
 
   useEffect(() => {
-    if (!isAuth || !id) return;
-    favorisAPI.check(id).then(d => setIsFav(d.isFavorite)).catch(() => {});
-  }, [id, isAuth]);
+    if (!connecte || !id) return;
+    favorisAPI.check(id)
+      .then((d) => setFavori(d.isFavorite))
+      .catch(() => setFavori(false));
+  }, [id, connecte]);
 
-  const toggleFav = async () => {
-    if (!isAuth) { navigate("/login"); return; }
-    setFavLoading(true);
+  const basculerFavori = async () => {
+    if (!connecte) { navigate("/login"); return; }
+    setFavoriEnCours(true);
     try {
-      if (isFav) { await favorisAPI.remove(id); setIsFav(false); }
-      else { await favorisAPI.add(id); setIsFav(true); }
-    } catch {}
-    setFavLoading(false);
+      if (favori) {
+        await favorisAPI.remove(id);
+        setFavori(false);
+      } else {
+        await favorisAPI.add(id);
+        setFavori(true);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setFavoriEnCours(false);
+    }
   };
 
-  if (loading) {
+  if (chargement) {
     return (
-      <div className="min-h-screen bg-(--bg-page) pt-16">
-        <div className="skeleton h-[50vh] w-full" />
-        <div className="max-w-4xl mx-auto px-8 py-10 space-y-4">
-          <div className="skeleton h-10 w-64 rounded-xl" />
-          <div className="skeleton h-5 w-40 rounded-lg" />
-          <div className="grid grid-cols-3 gap-4 mt-8">
-            {[1,2,3].map(i => <div key={i} className="skeleton h-24 rounded-2xl" />)}
-          </div>
-        </div>
+      <div className="mx-auto max-w-3xl px-6 py-12">
+        <div className="squelette h-14 w-72" />
+        <div className="squelette mt-6 aspect-[3/2] w-full" />
+        <div className="squelette mt-8 h-24 w-full" />
       </div>
     );
   }
 
-  if (error || !cafe) {
+  if (erreur || !cafe) {
     return (
-      <div className="min-h-screen bg-(--bg-page) flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-(--text-secondary) text-lg mb-6">{error || "Café non trouvé"}</p>
-          <button onClick={() => navigate("/")}
-            className="bg-(--accent) text-white px-8 py-3 rounded-xl font-semibold hover:bg-(--accent-light) transition-all btn-press">
-            Retour à l'accueil
-          </button>
-        </div>
+      <div className="mx-auto max-w-3xl px-6 py-16">
+        <p className="mesure text-corps text-encre">
+          {erreur ?? "cette adresse n'existe pas."} elle a peut-être été retirée du guide.
+        </p>
+        <Link to="/cafes" className="mt-6 inline-flex items-center bg-plaque px-6 text-white">
+          parcourir le guide
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-(--bg-page) pt-16">
-      {/* Hero image */}
-      <div className="relative h-[50vh] overflow-hidden">
-        <img src={cafe.image_url || FALLBACK} alt={cafe.nom}
-          className="w-full h-full object-cover"
-          onError={(e) => { e.target.src = FALLBACK; }} />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+    <article className="mx-auto max-w-3xl px-6 py-12">
+      <div className="flex items-start justify-between gap-4">
+        {/* En-tête : le geste fort de la fiche. */}
+        <h1 className="plaque plaque-lg">
+          {cafe.nom}
+          {cafe.arrondissement && <span className="ml-3 text-meta text-white/70">{cafe.arrondissement}</span>}
+        </h1>
 
-        {/* Back button */}
-        <button onClick={() => navigate(-1)}
-          className="absolute top-6 left-6 bg-white/90 rounded-full px-4 py-2 text-(--text-primary) flex items-center gap-2 hover:bg-white transition-all text-sm font-medium shadow-sm">
-          ← Retour
-        </button>
-
-        {/* Favori button */}
         <button
-          onClick={toggleFav}
-          disabled={favLoading}
-          className="absolute top-6 left-32 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-all hover:scale-110"
-          title={isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
+          type="button"
+          onClick={basculerFavori}
+          disabled={favoriEnCours}
+          aria-pressed={favori}
+          aria-label={favori ? "retirer des favoris" : "ajouter aux favoris"}
+          className="flex w-11 shrink-0 items-center justify-center text-gris disabled:opacity-50"
         >
-          <svg viewBox="0 0 24 24" className={`w-5 h-5 transition-colors ${isFav ? "fill-red-500 stroke-red-500" : "fill-none stroke-(--text-muted)"}`} strokeWidth="2">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-          </svg>
+          <Coeur rempli={favori} taille={24} />
         </button>
-
-        {/* Note badge */}
-        {cafe.note && (
-          <div className="absolute top-6 right-6 bg-white/90 text-(--text-primary) text-sm px-3 py-1.5 rounded-full font-bold shadow-sm">
-            ⭐ {cafe.note}
-          </div>
-        )}
-
-        {/* Title overlaid at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 px-8 pb-8">
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-1 drop-shadow-lg">{cafe.nom}</h1>
-            <p className="text-white/80 flex items-center gap-2 text-sm drop-shadow">
-              📍 {cafe.adresse}{cafe.arrondissement ? ` — ${cafe.arrondissement}` : ""}
-            </p>
-          </div>
-        </div>
       </div>
 
-      {/* Info content */}
-      <div className="max-w-4xl mx-auto px-8 py-10 pb-20">
-        {/* Specialty tags */}
-        {cafe.specialite && (
-          <div className="flex flex-wrap gap-2 mb-8">
-            {cafe.specialite.split(",").map((s, i) => (
-              <span key={i} className={`px-4 py-1.5 rounded-full text-sm font-medium ${BADGE_STYLES[s.trim()] || "bg-(--bg-section) text-(--text-secondary) border border-(--border)"}`}>
-                {s.trim()}
-              </span>
-            ))}
-          </div>
+      <div className="mt-8 aspect-[3/2] overflow-hidden">
+        {cafe.image_url ? (
+          <img
+            src={cafe.image_url}
+            alt={`${cafe.nom}, ${cafe.adresse ?? cafe.arrondissement}`}
+            className="h-full w-full object-cover"
+            decoding="async"
+          />
+        ) : (
+          <p className="image-repli">{cafe.nom}</p>
         )}
-
-        {/* Description */}
-        {cafe.description && (
-          <div className="bg-white border border-(--border) rounded-2xl p-6 mb-8">
-            <p className="text-xs text-(--text-muted) uppercase tracking-wider font-semibold mb-3">À propos</p>
-            <p className="text-(--text-secondary) leading-relaxed">{cafe.description}</p>
-          </div>
-        )}
-
-        {/* Info grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <InfoPanel label="Prix" value={cafe.prix ? `${cafe.prix} €` : null} icon="💰" />
-          <InfoPanel label="Horaires" value={cafe.horaires} icon="🕐" />
-          <InfoPanel label="Capacité" value={cafe.nb_personnes ? `${cafe.nb_personnes} personnes` : null} icon="👥" />
-        </div>
-
-        {/* Theme & ambiance */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <InfoPanel label="Thème" value={cafe.theme} icon="🎨" />
-          <InfoPanel label="Ambiance" value={cafe.ambiance} icon="✨" />
-        </div>
-
-        {/* Equipment */}
-        {(cafe.wifi === 1 || cafe.prises === 1 || cafe.travailler === 1) && (
-          <div className="bg-white border border-(--border) rounded-2xl p-5 mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xs text-(--text-muted) uppercase tracking-wider font-semibold">
-                Équipements & Services
-              </h3>
-              {/* Score travail */}
-              {(() => {
-                const score = (cafe.wifi === 1 ? 1 : 0) + (cafe.prises === 1 ? 1 : 0) + (cafe.travailler === 1 ? 1 : 0);
-                const colors = ["", "bg-yellow-400", "bg-orange-400", "bg-(--accent)"];
-                const labels = ["", "Passable pour travailler", "Bien pour travailler", "Idéal pour travailler"];
-                return (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-(--text-muted) font-medium">{labels[score]}</span>
-                    <div className="flex gap-1">
-                      {Array.from({ length: 3 }, (_, i) => (
-                        <span key={i} className={`w-3 h-3 rounded-sm ${i < score ? colors[score] : "bg-[rgba(0,0,0,0.08)]"}`} />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-            <div className="flex flex-wrap gap-3">
-              {cafe.wifi === 1 && (
-                <div className="flex items-center gap-2 bg-(--bg-section) px-4 py-2 rounded-xl">
-                  <span>📶</span>
-                  <span className="text-(--text-primary) font-medium text-sm">WiFi gratuit</span>
-                </div>
-              )}
-              {cafe.prises === 1 && (
-                <div className="flex items-center gap-2 bg-(--bg-section) px-4 py-2 rounded-xl">
-                  <span>🔌</span>
-                  <span className="text-(--text-primary) font-medium text-sm">Prises électriques</span>
-                </div>
-              )}
-              {cafe.travailler === 1 && (
-                <div className="flex items-center gap-2 bg-(--bg-section) px-4 py-2 rounded-xl">
-                  <span>💼</span>
-                  <span className="text-(--text-primary) font-medium text-sm">Idéal pour travailler</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Avis */}
-        <div className="border-t border-(--border) pt-8 mt-8">
-          <AvisSection cafeId={id} />
-        </div>
-
-        {/* CTA buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 mt-8">
-          <button onClick={() => navigate("/")}
-            className="flex-1 bg-(--accent) text-white py-3.5 rounded-xl font-semibold text-base hover:bg-(--accent-light) transition-all duration-200 btn-press">
-            Retour à l'accueil
-          </button>
-          <button
-            onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cafe.adresse || cafe.nom)}`, "_blank")}
-            className="border border-(--border) bg-white px-8 py-3.5 rounded-xl font-semibold text-(--text-primary) hover:border-(--accent) hover:text-(--accent) transition-all">
-            Voir sur Maps 🗺️
-          </button>
-        </div>
       </div>
-    </div>
+
+      {/* Le verdict passe avant tout le reste : c'est le produit. */}
+      {cafe.verdict ? (
+        <div className="mt-10">
+          <p className="voix">{cafe.verdict}</p>
+          {cafe.coup_de_coeur === 1 && (
+            <p className="plaque plaque-active mt-5">coup de cœur</p>
+          )}
+        </div>
+      ) : (
+        cafe.coup_de_coeur === 1 && <p className="plaque plaque-active mt-10">coup de cœur</p>
+      )}
+
+      {cafe.description && (
+        <p className="mesure mt-8 text-corps text-encre">{cafe.description}</p>
+      )}
+
+      <HorairesSemaine plages={cafe.horaires} />
+
+      <Pratique cafe={cafe} />
+
+      {cafe.adresse && (
+        <a
+          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cafe.adresse)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-8 inline-flex items-center border border-trait px-6 text-encre"
+        >
+          ouvrir dans un plan
+        </a>
+      )}
+
+      <div className="mt-12 border-t border-trait pt-10">
+        <AvisSection cafeId={id} />
+      </div>
+    </article>
   );
 }

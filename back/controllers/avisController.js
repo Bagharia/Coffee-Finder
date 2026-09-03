@@ -1,94 +1,129 @@
 const db = require('../config/db');
+const { lirePagination, reponsePaginee, valider } = require('../utils/validation');
+const journal = require('../utils/journal');
 
-// GET /api/avis/:cafeId — tous les avis d'un café
+const echec = (res, err, contexte) => {
+    journal.erreur(`[avis] ${contexte} :`, err);
+    return res.status(500).json({ error: 'Erreur serveur' });
+};
+
+// GET /api/avis/:cafeId — avis d'une adresse, paginés
 exports.getAvisByCafe = async (req, res) => {
+    const { cafeId } = req.params;
+    const { page, limite, offset } = lirePagination(req.query);
+
     try {
-        const { cafeId } = req.params;
+        // La moyenne se calcule sur l'ensemble des avis, pas sur la page
+        // affichée : la faire en JS sur `rows` la rendrait fausse dès la page 2.
+        const [[agregat]] = await db.query(
+            'SELECT COUNT(*) AS total, AVG(note) AS moyenne FROM avis WHERE cafe_id = ?',
+            [cafeId]
+        );
+
         const [rows] = await db.query(
-            `SELECT avis.*, users.username
+            `SELECT avis.id AS id,
+                    avis.note AS note,
+                    avis.commentaire AS commentaire,
+                    avis.created_at AS created_at,
+                    avis.user_id AS user_id,
+                    users.username AS username
              FROM avis
              JOIN users ON avis.user_id = users.id
              WHERE avis.cafe_id = ?
-             ORDER BY avis.created_at DESC`,
-            [cafeId]
+             ORDER BY avis.created_at DESC
+             LIMIT ? OFFSET ?`,
+            [cafeId, limite, offset]
         );
-        // Calcul note moyenne
-        const moyenne = rows.length > 0
-            ? (rows.reduce((sum, a) => sum + a.note, 0) / rows.length).toFixed(1)
-            : null;
-        res.json({ avis: rows, moyenne: moyenne ? parseFloat(moyenne) : null, total: rows.length });
+
+        return res.json({
+            ...reponsePaginee(rows, { page, limite }, agregat.total),
+            moyenne: agregat.moyenne === null ? null : Number(Number(agregat.moyenne).toFixed(1))
+        });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Erreur serveur' });
+        return echec(res, err, 'lecture des avis');
     }
 };
 
 // POST /api/avis/:cafeId — ajouter ou modifier son avis
 exports.addOrUpdateAvis = async (req, res) => {
-    try {
-        const userId = req.user.userId;
-        const { cafeId } = req.params;
-        const { note, commentaire } = req.body;
+    const erreurs = valider(req.body, {
+        note: { requis: true, type: 'entier', min: 1, max: 5 },
+        commentaire: { max: 2000 }
+    });
 
-        if (!note || note < 1 || note > 5) {
-            return res.status(400).json({ error: 'Note invalide (1-5)' });
+    if (erreurs.length > 0) {
+        return res.status(400).json({ error: erreurs.join(' ') });
+    }
+
+    const userId = req.user.userId;
+    const { cafeId } = req.params;
+    const { note, commentaire } = req.body;
+
+    try {
+        const [cafe] = await db.query('SELECT id FROM cafes WHERE id = ?', [cafeId]);
+        if (cafe.length === 0) {
+            return res.status(404).json({ error: 'Cette adresse n\'existe pas.' });
         }
 
-        // Vérifier si le café existe
-        const [cafe] = await db.query('SELECT id FROM cafes WHERE id = ?', [cafeId]);
-        if (cafe.length === 0) return res.status(404).json({ error: 'Café introuvable' });
-
-        // Upsert — insert ou update si déjà noté
-        await db.query(
+        // Repose sur l'index UNIQUE(user_id, cafe_id) posé par la migration 003.
+        const [ecriture] = await db.query(
             `INSERT INTO avis (user_id, cafe_id, note, commentaire)
              VALUES (?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE note = VALUES(note), commentaire = VALUES(commentaire)`,
-            [userId, cafeId, note, commentaire || null]
+            [userId, cafeId, Number(note), commentaire || null]
         );
 
-        res.status(201).json({ message: 'Avis enregistré' });
+        // Convention MySQL sur ON DUPLICATE KEY : 1 ligne touchée = insertion,
+        // 2 = mise à jour. Répondre 201 Created sur une modification mentirait
+        // au client, qui n'a aucun autre moyen de savoir ce qui s'est passé.
+        const creation = ecriture.affectedRows === 1;
+
+        const [rows] = await db.query(
+            'SELECT id, note, commentaire, created_at FROM avis WHERE user_id = ? AND cafe_id = ?',
+            [userId, cafeId]
+        );
+
+        return res.status(creation ? 201 : 200).json(rows[0]);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Erreur serveur' });
+        return echec(res, err, 'enregistrement d\'un avis');
     }
 };
 
 // DELETE /api/avis/:cafeId — supprimer son avis
 exports.deleteAvis = async (req, res) => {
-    try {
-        const userId = req.user.userId;
-        const { cafeId } = req.params;
+    const userId = req.user.userId;
+    const { cafeId } = req.params;
 
+    try {
         const [result] = await db.query(
             'DELETE FROM avis WHERE user_id = ? AND cafe_id = ?',
             [userId, cafeId]
         );
 
         if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Avis introuvable' });
+            return res.status(404).json({ error: 'Vous n\'avez pas d\'avis sur cette adresse.' });
         }
 
-        res.json({ message: 'Avis supprimé' });
+        return res.json({ message: 'Avis supprimé.' });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Erreur serveur' });
+        return echec(res, err, 'suppression d\'un avis');
     }
 };
 
-// GET /api/avis/:cafeId/mine — récupérer son propre avis
+// GET /api/avis/:cafeId/mine — son propre avis
 exports.getMyAvis = async (req, res) => {
-    try {
-        const userId = req.user.userId;
-        const { cafeId } = req.params;
+    const userId = req.user.userId;
+    const { cafeId } = req.params;
 
+    try {
         const [rows] = await db.query(
-            'SELECT * FROM avis WHERE user_id = ? AND cafe_id = ?',
+            'SELECT id, note, commentaire, created_at FROM avis WHERE user_id = ? AND cafe_id = ?',
             [userId, cafeId]
         );
 
-        res.json(rows[0] || null);
+        // Pas d'avis n'est pas une erreur : l'écran affiche le formulaire vide.
+        return res.json(rows[0] || null);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Erreur serveur' });
+        return echec(res, err, 'lecture de son avis');
     }
 };

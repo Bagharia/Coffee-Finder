@@ -1,53 +1,126 @@
-require('dotenv').config();
+const { PORT, NODE_ENV, FRONTEND_URL, TRUST_PROXY, EN_PRODUCTION } = require('./config/env');
 const express = require('express');
-const app = express();
-const port = process.env.PORT || 3000;
 const cors = require('cors');
 const db = require('./config/db');
+const { securityHeaders } = require('./middleware/securityHeaders');
+const journal = require('./utils/journal');
 
-// Configuration CORS sécurisée
-const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true,
-  optionsSuccessStatus: 200
-};
+const app = express();
 
-app.use(cors(corsOptions));
-app.use(express.json());
+app.disable('x-powered-by');
 
-if (process.env.NODE_ENV === 'development') {
-  app.set('json spaces', 2);
+// Derrière un reverse proxy, req.ip vaut l'adresse du proxy et le limiteur de
+// débit compte tout le monde ensemble. À n'activer que si un proxy est bien là :
+// sinon n'importe qui usurpe son IP via X-Forwarded-For. En production, le choix
+// est exigé explicitement — voir config/env.js.
+if (TRUST_PROXY) {
+  app.set('trust proxy', 1);
 }
 
-// Test de la connexion à la base de données
+app.use(securityHeaders);
+
+app.use(cors({
+  origin: FRONTEND_URL,
+  credentials: true,
+  optionsSuccessStatus: 200
+}));
+
+app.use(express.json({ limit: '100kb' }));
+
+// Vérification de la connexion à la base au démarrage. En développement, on
+// laisse le serveur vivre : c'est souvent MySQL qu'on a oublié de lancer, et
+// un message suffit. En production, un serveur qui répond alors que sa base
+// est injoignable est pire qu'un serveur mort : l'hébergeur le croit sain et
+// laisse le trafic arriver sur des 500. On sort en échec.
 db.query('SELECT 1')
   .then(() => {
-    console.log('✅ Database connected successfully');
+    journal.info('Base de données connectée.');
   })
   .catch((err) => {
-    console.error('❌ Database connection failed:', err.message);
-    console.error('Please check:');
-    console.error('1. MySQL/MariaDB is running');
-    console.error('2. Database "spotheplace" exists');
-    console.error('3. .env credentials are correct');
+    journal.erreur('Connexion à la base impossible :', err.message);
+
+    if (EN_PRODUCTION) {
+      journal.erreur('Arrêt : une API sans base ne doit pas se déclarer disponible.');
+      process.exit(1);
+    }
+
+    journal.erreur('Vérifier : MySQL/MariaDB lancé, base créée, migrations appliquées (back/db), .env correct.');
   });
 
-const cafesRoutes = require('./routes/cafes');
-const usersRoutes = require('./routes/users');
-const favorisRoutes = require('./routes/favoris');
-const avisRoutes = require('./routes/avis');
+app.use('/api/cafes', require('./routes/cafes'));
+app.use('/api/users', require('./routes/users'));
+app.use('/api/favoris', require('./routes/favoris'));
+app.use('/api/avis', require('./routes/avis'));
 
-app.use('/api/cafes', cafesRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/favoris', favorisRoutes);
-app.use('/api/avis', avisRoutes);
-
-// Route de test
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Server is running' });
+// Sonde de disponibilité. Elle interroge la base : répondre « ok » sans l'avoir
+// touchée revient à certifier sain un serveur qui renvoie des 500 sur toutes
+// les autres routes, et c'est la panne la plus longue à diagnostiquer.
+app.get('/api/health', async (req, res) => {
+  try {
+    await db.query('SELECT 1');
+    res.json({ status: 'ok', base: 'ok' });
+  } catch (err) {
+    journal.erreur('[health] base injoignable :', err.message);
+    res.status(503).json({ status: 'degrade', base: 'injoignable' });
+  }
 });
 
-app.listen(port, () => {
-  console.log(`🚀 Server listening on port ${port}`);
-  console.log(`📍 API available at http://localhost:${port}`);
+// 404 global : une route inconnue répond du JSON comme le reste de l'API,
+// pas la page HTML par défaut d'Express.
+app.use((req, res) => {
+  res.status(404).json({ error: `Route inconnue : ${req.method} ${req.originalUrl}` });
 });
+
+// Gestionnaire d'erreurs global — dernier filet. Le détail reste au serveur.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  journal.erreur('[erreur non rattrapée]', err);
+
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Corps de requête JSON invalide.' });
+  }
+
+  res.status(err.status || 500).json({ error: 'Erreur serveur' });
+});
+
+const serveur = app.listen(PORT, () => {
+  journal.info(`API SpotThePlace sur http://localhost:${PORT} (${NODE_ENV})`);
+  journal.info(`Origine autorisée : ${FRONTEND_URL}`);
+  journal.info(`trust proxy : ${TRUST_PROXY ? 'activé' : 'désactivé'}`);
+});
+
+// Arrêt propre. Un hébergeur envoie SIGTERM puis tue le processus quelques
+// secondes plus tard : sans ce bloc, les requêtes en vol sont coupées net à
+// chaque redéploiement et le pool MySQL n'est jamais rendu.
+const DELAI_ARRET_MS = 10_000;
+let arretEnCours = false;
+
+const arreter = (signal) => {
+  if (arretEnCours) return;
+  arretEnCours = true;
+
+  journal.info(`${signal} reçu — arrêt en cours.`);
+
+  // Filet : si une requête ne se termine jamais, on ne reste pas suspendu
+  // jusqu'à ce que l'hébergeur nous tue sans ménagement.
+  const minuteur = setTimeout(() => {
+    journal.erreur(`Arrêt forcé après ${DELAI_ARRET_MS} ms : des connexions traînaient.`);
+    process.exit(1);
+  }, DELAI_ARRET_MS);
+
+  minuteur.unref();
+
+  serveur.close(async () => {
+    try {
+      await db.end();
+      journal.info('Pool MySQL fermé. Arrêt terminé.');
+      process.exit(0);
+    } catch (err) {
+      journal.erreur('Fermeture du pool MySQL impossible :', err.message);
+      process.exit(1);
+    }
+  });
+};
+
+process.on('SIGTERM', () => arreter('SIGTERM'));
+process.on('SIGINT', () => arreter('SIGINT'));

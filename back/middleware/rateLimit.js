@@ -20,9 +20,13 @@ setInterval(() => {
  * @param {number} options.fenetreMs durée de la fenêtre glissante
  * @param {number} options.max nombre de requêtes autorisées par fenêtre
  * @param {string} options.message message renvoyé au client une fois la limite atteinte
+ * @param {string} [options.portee] clé de comptage. Par défaut le chemin exact,
+ *   ce qui suffit aux routes fixes (`/login`). Sur une route paramétrée
+ *   (`/avis/:cafeId`), le chemin change à chaque café : la limite serait
+ *   comptée par café et non par visiteur. Passer une portée fixe dans ce cas.
  */
-exports.rateLimit = ({ fenetreMs, max, message }) => (req, res, next) => {
-  const cle = `${req.baseUrl}${req.path}:${req.ip}`;
+exports.rateLimit = ({ fenetreMs, max, message, portee }) => (req, res, next) => {
+  const cle = `${portee || `${req.baseUrl}${req.path}`}:${req.ip}`;
   const maintenant = Date.now();
   const entree = fenetres.get(cle);
 

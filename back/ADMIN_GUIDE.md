@@ -48,8 +48,9 @@ curl -X POST http://localhost:3000/api/users/register \
 UPDATE users SET role = 'admin' WHERE email = 'admin@spotheplace.fr';
 ```
 
-La session ouverte à l'inscription porte encore `role: user`. Il faut se
-reconnecter après la promotion pour obtenir une session admin.
+La promotion prend effet immédiatement, sans reconnexion : le rôle est relu en
+base à chaque requête et non pris dans le jeton. Une rétrogradation coupe donc
+l'accès tout de suite, au lieu d'attendre l'expiration du jeton.
 
 ## Se connecter
 
@@ -69,6 +70,26 @@ gérer leur jeton eux-mêmes.
 Le mot de passe fait au minimum 8 caractères, à l'inscription comme au
 changement. Après 10 tentatives de connexion ratées depuis la même adresse IP
 en 15 minutes, l'API répond 429.
+
+Changer son mot de passe **déconnecte toutes les autres sessions** : la session
+qui fait la demande reçoit un jeton neuf, les autres reçoivent 401. C'est le
+but — on change son mot de passe quand on pense que quelqu'un d'autre a accès
+au compte.
+
+## Réinitialiser un mot de passe oublié
+
+Il n'y a pas de « mot de passe oublié » en libre-service : il faudrait envoyer
+un e-mail, donc une dépendance et un service d'envoi. La reprise en main se
+fait depuis `back/` :
+
+```bash
+npm run user:motdepasse -- admin@spotheplace.fr
+```
+
+Le script demande confirmation, propose un mot de passe lisible, le hache
+correctement et révoque les sessions ouvertes. Un `UPDATE` écrit à la main
+obligerait à hacher soi-même, et une erreur de coût ou de format n'apparaîtrait
+qu'au moment où la connexion échoue.
 
 ## Ajouter une adresse
 

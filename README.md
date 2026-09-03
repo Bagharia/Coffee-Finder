@@ -38,20 +38,31 @@ front/frontend/       application React
 
 ### 1. La base
 
-MySQL ou MariaDB en local. Depuis `back/`, migrations dans l'ordre :
+MySQL ou MariaDB en local. Depuis `back/`, une seule commande :
 
 ```bash
-mysql -u root -p < db/001_init.sql
-mysql -u root -p < db/002_colonnes_cafes.sql
-mysql -u root -p < db/003_avis_favoris.sql
-mysql -u root -p < db/004_verdict.sql
-mysql -u root -p < db/005_horaires.sql
-mysql -u root -p < db/seed.sql   # facultatif, cinq adresses d'exemple
+npm run db:migrate
 ```
 
-Les migrations sont numérotées et s'appliquent dans l'ordre, une fois chacune.
-Une base créée avant leur mise en place est à jour jusqu'à `002` : reprendre
-à `003`.
+Elle applique les migrations manquantes dans l'ordre et les inscrit dans
+`schema_migrations`. Relancée, elle ne fait rien. La base visée est celle du
+`.env` : les fichiers SQL ne contiennent aucun nom de base en dur.
+
+```bash
+npm run db:migrate -- --etat       # ce qui est appliqué, ce qui attend
+npm run db:migrate -- --baseline   # tout marquer appliqué sans exécuter
+```
+
+`--baseline` sert une fois, sur une base montée à la main avant l'arrivée du
+runner : elle a le bon schéma mais pas la table de suivi.
+
+```bash
+mysql -u <user> -p <base> < db/seed.sql   # facultatif, cinq adresses d'exemple
+```
+
+Le jeu de démonstration contient cinq établissements **inventés**, posés à de
+vraies adresses parisiennes : le dépôt est public, on n'y attribue pas d'avis
+fabriqués à des commerces existants.
 
 Les fichiers sont écrits en syntaxe portable : ils passent sur MySQL 8 comme
 sur MariaDB. Rejouer une migration déjà appliquée échoue, et c'est voulu — mieux
@@ -141,7 +152,7 @@ reste dans le journal du serveur : le client ne reçoit jamais un message SQL.
 | `GET` | `/api/cafes/:id` | public — 404 si l'adresse n'existe pas |
 | `GET` | `/api/cafes/random` | public |
 | `GET` | `/api/cafes/nouveautes` | public — 30 derniers jours |
-| `GET` | `/api/cafes/search?arrondissement=&specialite=&wifi=&prix=&ambiance=&prises=&theme=&nb_personnes=&horaires=&coup_de_coeur=` | public |
+| `GET` | `/api/cafes/search?arrondissement=&specialite=&wifi=&prix=&ambiance=&prises=&theme=&nb_personnes=&coup_de_coeur=` | public |
 | `GET` | `/api/cafes/arrondissement/:arr` | public |
 | `GET` | `/api/cafes/specialite/:spec` | public |
 | `GET` | `/api/cafes/wifi/:wifi` | public — `0` ou `1` |
@@ -187,9 +198,9 @@ la requête est ignoré. La promotion en admin se fait en base, voir
 | Table | Contenu |
 |---|---|
 | `cafes` | nom, arrondissement, adresse, description, image, coordonnées, `verdict`, `coup_de_coeur` |
-| `criteres_cafe` | wifi, prises, prix, ambiance, thème, spécialité, horaires en texte libre |
-| `cafe_horaires` | horaires exploitables : `jour` de 1 (lundi) à 7, `ouverture`, `fermeture`. Pas de ligne = fermé ce jour-là |
-| `users` | compte, rôle `user` ou `admin` |
+| `criteres_cafe` | wifi, prises, prix, ambiance, thème, spécialité |
+| `cafe_horaires` | **seule source des horaires** : `jour` de 1 (lundi) à 7, `ouverture`, `fermeture`. Pas de ligne = fermé ce jour-là, plusieurs lignes = service coupé, `fermeture` avant `ouverture` = fermeture après minuit. L'API les renvoie dans le champ `horaires` de chaque adresse |
+| `users` | compte, rôle `user` ou `admin`, `jeton_version` pour révoquer les sessions |
 | `avis` | note de 1 à 5 et commentaire, `UNIQUE(user_id, cafe_id)` |
 | `favoris` | `UNIQUE(user_id, cafe_id)` |
 

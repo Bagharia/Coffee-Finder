@@ -10,6 +10,132 @@ fait, en absolu.
 
 ---
 
+## 2026-09-03 — Comptes, mots de passe, sessions
+
+### Le sel, d'abord : il était déjà là
+
+Demande initiale : « n'oublie pas le sel ». Il n'y avait rien à ajouter, et
+l'ajouter aurait été une régression.
+
+`bcrypt.hash(motDePasse, 12)` tire un sel au hasard à chaque appel et le range
+dans l'empreinte : `$2b$12$<sel sur 22 caractères><empreinte>`. Le même mot de
+passe haché deux fois donne deux résultats différents — vérifié sur le compte
+réel de Wendy, son sel est bien là.
+
+Un sel « ajouté à la main » finit presque toujours en constante partagée par
+tous les comptes, ce qui annule exactement ce à quoi sert un sel : empêcher
+qu'une même empreinte trahisse deux mots de passe identiques, et rendre les
+tables précalculées inutilisables.
+
+**Le réflexe :** avant d'ajouter une protection à une brique de cryptographie,
+vérifier qu'elle ne la fait pas déjà. Ces bibliothèques sont écrites pour être
+utilisées sans qu'on les aide.
+
+Ce qui manquait vraiment était à côté : le **coût** était à 10, alors que 12 est
+le plancher recommandé aujourd'hui — chaque unité double le travail d'un
+attaquant. Relevé à 12, avec réhachage silencieux à la connexion : seule une
+connexion réussie donne accès au mot de passe en clair, c'est donc le seul
+moment où l'on peut refaire une empreinte obsolète.
+
+### La connexion se lisait au chronomètre
+
+Le code disait, en commentaire, que le message « email ou mot de passe
+incorrect » était identique dans les deux cas pour ne pas révéler quels emails
+existent. Mesuré :
+
+| | avant | après |
+|---|---|---|
+| email existant | 70,6 ms | 271 ms |
+| email inconnu | **1,4 ms** | 270 ms |
+
+Quand le compte n'existait pas, aucun bcrypt ne tournait et la réponse partait
+cinquante fois plus vite. L'intention était juste, l'implémentation la trahissait
+sans que rien ne le signale.
+
+Correction : comparer toujours contre un hachage — celui du compte, ou un leurre
+calculé une fois au démarrage.
+
+Détail qui vaut la peine : après correction, l'écart s'est **inversé** — 70 ms
+contre 276. Le leurre était à coût 12, le mot de passe de Wendy encore à 10. Il
+a fallu une connexion réussie, donc un réhachage, pour que les deux s'alignent.
+Une protection à temps constant n'est constante que si tout le parc est au même
+coût.
+
+**Le réflexe :** une protection qui repose sur un temps de réponse se vérifie au
+chronomètre, pas à la lecture. Le commentaire décrivait une intention, pas un
+fait.
+
+### Changer son mot de passe ne fermait aucune session
+
+Un JWT est valable jusqu'à son expiration et rien ne l'annule. Changer son mot
+de passe laissait donc les sessions ouvertes actives vingt-quatre heures — alors
+qu'on change son mot de passe précisément quand on pense que quelqu'un d'autre
+a un accès. La seule action de défense disponible ne défendait pas.
+
+`users.jeton_version` est maintenant copié dans le jeton et relu à chaque
+requête authentifiée. L'incrémenter invalide d'un coup tous les jetons émis.
+Vérifié avec deux sessions ouvertes : celle qui change le mot de passe continue
+avec un jeton neuf, l'autre reçoit 401.
+
+Ça coûte une lecture sur clé primaire par requête authentifiée. En échange, un
+compte supprimé cesse immédiatement d'être utilisable, et le rôle étant relu en
+base, une rétrogradation prend effet tout de suite au lieu d'attendre
+l'expiration — vérifié en rétrogradant puis re-promouvant le compte sans
+toucher à la session.
+
+**Le réflexe :** « signé donc valide » n'est pas « toujours autorisé ». Un jeton
+dit ce qui était vrai à son émission ; l'autorisation, elle, se décide au
+moment de la requête.
+
+### Un pseudo déjà pris renvoyait 500
+
+`register` vérifiait l'unicité de l'email et pas celle du pseudo, pourtant
+`UNIQUE` au schéma. MySQL levait, le `catch` générique répondait
+« Erreur serveur ». Sur le seul écran par lequel un visiteur entre, et sans
+aucun moyen de deviner quoi corriger.
+
+**Le réflexe :** une contrainte de base de données n'est pas un message
+d'erreur. Chaque `UNIQUE` du schéma doit avoir sa vérification côté
+application — la contrainte reste le filet, pas l'interface.
+
+### Une vérité recopiée diverge toujours
+
+`GET /api/favoris` répondait 500 : `favoriController` **recopiait** la liste des
+colonnes des adresses au lieu de la partager, et la migration 006 n'en avait
+corrigé qu'une des deux copies. La page des favoris était cassée sans que rien
+ne le dise.
+
+C'est le troisième cas du même motif dans ce journal, après le nom de base écrit
+en dur dans les migrations et l'horaire stocké à deux endroits. La liste vit
+maintenant dans `utils/cafes.js`, en un exemplaire.
+
+### Des tests, enfin — et le premier qui comptait
+
+`npm test` échouait volontairement, puis annonçait poliment qu'il n'y avait rien.
+Il lance désormais `node --test`, intégré à Node, donc sans une dépendance de
+plus : 13 tests au back, 10 au front.
+
+Le plus utile est le plus bête. En découpant `cafeController`, j'ai laissé une
+constante derrière moi. `node --check` est passé au vert — il ne valide que la
+syntaxe, jamais les références — et le serveur a planté au démarrage.
+`chargement.test.js` charge tous les modules et attrape cette classe d'erreur en
+une seconde.
+
+**Le réflexe :** le test qui vaut le plus n'est pas le plus astucieux, c'est
+celui qui rejoue la panne qu'on vient d'avoir. Chaque correctif dont on se dit
+« j'aurais aimé le voir plus tôt » mérite son test, écrit sur le moment.
+
+### Ce qui reste ouvert
+
+Pas de « mot de passe oublié » en libre-service : il faudrait envoyer un e-mail,
+donc une dépendance et un service d'envoi — une décision, pas un correctif.
+En attendant, `npm run user:motdepasse -- <email>` réinitialise depuis la ligne
+de commande, avec confirmation, hachage correct et révocation des sessions. Ça
+remplace l'`UPDATE` écrit à la main, où une erreur de coût ou de format ne se
+voyait qu'au moment où la connexion échouait.
+
+---
+
 ## 2026-09-03 — Les horaires deviennent exploitables
 
 `cafe_horaires` existait depuis la migration 005 et **personne ne l'utilisait** :
@@ -292,3 +418,12 @@ Trois motifs, à reconnaître avant qu'on te les signale :
 3. **Le local pris pour la référence.** Pas de TLS, pas de proxy, pas de délai
    réseau, pas de redéploiement. Ta machine est le seul environnement où rien de
    tout ça n'existe.
+4. **La vérité recopiée.** Le nom de la base écrit dans chaque migration,
+   l'horaire stocké en texte et en table, la liste de colonnes dupliquée entre
+   deux contrôleurs. À chaque fois on corrige un endroit et on oublie l'autre.
+   Trois occurrences en une journée : c'est le motif le plus fréquent de ce
+   journal.
+5. **L'intention prise pour un fait.** Un commentaire qui affirme que deux
+   chemins sont indiscernables, alors que le chronomètre les sépare d'un facteur
+   cinquante. Ce que le code dit de lui-même se vérifie, surtout quand c'est
+   rassurant.

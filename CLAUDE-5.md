@@ -122,6 +122,13 @@ d'usage.
   Lister les colonnes et aliaser (`cafes.id AS id`, `criteres_cafe.id AS
   critere_id`).
 - Requêtes toujours paramétrées (`?`). C'est déjà le cas, ça doit le rester.
+- La liste de colonnes des adresses vit dans `utils/cafes.js`, en un seul
+  exemplaire. Elle a été recopiée dans `favoriController` par le passé : la
+  migration 006 n'en a corrigé qu'une, et la page des favoris a répondu 500.
+- `npm test` lance de vrais tests (`node --test`, aucune dépendance), au back
+  comme au front. En ajouter avec chaque correctif dont on aurait aimé qu'il
+  soit attrapé plus tôt. `chargement.test.js` charge tous les modules :
+  `node --check` ne valide que la syntaxe, jamais les références.
 - Une ressource absente répond 404 depuis le corps de la fonction, pas depuis le
   `catch` — un `catch` ne sait pas distinguer « absent » de « base en panne ».
 - Une ressource unique répond un objet, pas un tableau d'un élément.
@@ -156,6 +163,21 @@ sous forme de règles : ce sont des propriétés à préserver, pas des tâches.
    main dans `middleware/securityHeaders.js` — pas de `helmet`, la stack suffit.
 7. `FRONTEND_URL` obligatoire en production : sans elle, l'origine CORS se
    replierait silencieusement sur `localhost:5173`.
+8. **Connexion à temps constant.** `login` compare toujours contre un hachage,
+   celui du compte ou un leurre calculé au démarrage. Sans ça l'absence de
+   compte se lisait au chronomètre — 1,4 ms contre 70 — et le message identique
+   dans les deux cas ne protégeait rien.
+9. **Sessions révocables.** `users.jeton_version` est copié dans le jeton et
+   relu à chaque requête. Changer son mot de passe l'incrémente et déconnecte
+   les autres sessions. Le rôle est relu en base au passage : une
+   rétrogradation prend effet tout de suite, sans attendre l'expiration.
+10. **Coût bcrypt à 12**, avec réhachage silencieux à la connexion pour les
+    comptes créés avant. Ne jamais ajouter de sel : bcrypt en tire un au hasard
+    et le range dans l'empreinte. Un sel écrit à la main serait au mieux
+    redondant, au pire partagé entre les comptes — donc inutile.
+11. **Unicité du pseudo vérifiée** avant l'insertion, avec repli sur
+    `ER_DUP_ENTRY` pour les inscriptions simultanées. Un pseudo déjà pris
+    répondait 500 sur le seul écran par lequel un visiteur entre.
 
 ### Jeton de session
 

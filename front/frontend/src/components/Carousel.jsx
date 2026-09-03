@@ -13,11 +13,12 @@ export default function Carousel({ cafes }) {
     <ul className="-mx-6 flex snap-x snap-mandatory gap-5 overflow-x-auto px-6 pb-4">
       {/* 320 px et non 256 : les cartes portent maintenant deux lignes de
           verdict, qui se serraient à quatre ou cinq mots par ligne. */}
-      {cafes.map((cafe, index) => (
+      {cafes.map((cafe) => (
         <li key={cafe.id} className="w-80 shrink-0 snap-start">
-          {/* Seule la première image est prioritaire : les suivantes sont hors
-              écran au chargement. */}
-          <CafeCard cafe={cafe} prioritaire={index === 0} />
+          {/* Aucune n'est prioritaire : le carrousel est sous la ligne de
+              flottaison, et sa première image se battrait pour la bande
+              passante avec la photo d'ouverture, qui elle est visible. */}
+          <CafeCard cafe={cafe} />
         </li>
       ))}
     </ul>

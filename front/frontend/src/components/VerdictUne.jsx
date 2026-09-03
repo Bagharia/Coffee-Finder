@@ -30,6 +30,8 @@ export default function VerdictUne({ cafe, chargement }) {
 
   return (
     <div className="grid gap-8 md:grid-cols-2 md:items-center">
+      {/* La première image utile de l'accueil : c'est elle que la DA veut voir
+          arriver sous deux secondes en 4G, donc elle passe devant le reste. */}
       <div className="aspect-[4/3] overflow-hidden rounded-carte">
         {cafe.image_url ? (
           <img
@@ -37,6 +39,8 @@ export default function VerdictUne({ cafe, chargement }) {
             alt={`${cafe.nom}, ${cafe.adresse ?? cafe.arrondissement}`}
             className="h-full w-full object-cover"
             decoding="async"
+            loading="eager"
+            fetchPriority="high"
           />
         ) : (
           <p className="image-repli h-full w-full">{cafe.nom}</p>

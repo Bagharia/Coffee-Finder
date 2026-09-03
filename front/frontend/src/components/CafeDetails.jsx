@@ -140,6 +140,8 @@ export default function CafeDetails() {
             alt={`${cafe.nom}, ${cafe.adresse ?? cafe.arrondissement}`}
             className="h-full w-full object-cover"
             decoding="async"
+            loading="eager"
+            fetchPriority="high"
           />
         ) : (
           <p className="image-repli">{cafe.nom}</p>

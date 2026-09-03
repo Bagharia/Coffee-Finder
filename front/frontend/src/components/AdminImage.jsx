@@ -60,7 +60,8 @@ export default function AdminImage({ cafeId, nom, imageUrl, onChangeUrl, onTelev
           <img
             src={imageUrl}
             alt={nom ? `photo actuelle de ${nom}` : "photo actuelle de l'adresse"}
-            className="h-24 w-32 shrink-0 border border-trait rounded-carte object-cover"
+            loading="lazy"
+            className="h-24 w-32 shrink-0 rounded-carte border border-trait object-cover"
           />
           {cafeId && (
             <button

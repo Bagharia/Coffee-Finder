@@ -5,11 +5,12 @@ const db = require('../config/db');
 const { JWT_SECRET } = require('../config/env');
 const { valider, MOT_DE_PASSE_MIN } = require('../utils/validation');
 const { poserJeton, retirerJeton } = require('../utils/cookie');
+const journal = require('../utils/journal');
 
 const DUREE_TOKEN = '24h';
 
 const echec = (res, err, contexte, message = 'Erreur serveur') => {
-  console.error(`[users] ${contexte} :`, err);
+  journal.erreur(`[users] ${contexte} :`, err);
   return res.status(500).json({ error: message });
 };
 

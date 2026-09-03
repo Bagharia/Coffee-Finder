@@ -1,8 +1,9 @@
 const db = require('../config/db');
 const { lirePagination, reponsePaginee } = require('../utils/validation');
+const journal = require('../utils/journal');
 
 const echec = (res, err, contexte) => {
-    console.error(`[favoris] ${contexte} :`, err);
+    journal.erreur(`[favoris] ${contexte} :`, err);
     return res.status(500).json({ error: 'Erreur serveur' });
 };
 

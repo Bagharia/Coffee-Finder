@@ -105,7 +105,7 @@ export default function Home() {
       <section className="border-b border-trait px-6 py-16">
         <div className="mx-auto max-w-6xl">
           <div className="mb-8 flex items-end justify-between gap-4">
-            <h2 className="text-section text-encre">Le Guide</h2>
+            <h2 className="text-section text-encre">Le guide</h2>
             <Link to="/cafes" className="flex items-center text-meta text-gris underline underline-offset-4">
               Tout Voir
             </Link>
@@ -136,7 +136,7 @@ export default function Home() {
       {nouveautes.length > 0 && (
         <section className="border-b border-trait px-6 py-16">
           <div className="mx-auto max-w-6xl">
-            <h2 className="mb-2 text-section text-encre">Arrivées Récentes</h2>
+            <h2 className="mb-2 text-section text-encre">Arrivées récentes</h2>
             <p className="mb-8 text-meta text-gris">Ajoutées Au Cours Des Trente Derniers Jours</p>
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -151,7 +151,7 @@ export default function Home() {
       <section className="px-6 py-16">
         <div className="mx-auto max-w-6xl">
           <div className="mb-8 flex items-end justify-between gap-4">
-            <h2 className="text-section text-encre">Sur Le Plan</h2>
+            <h2 className="text-section text-encre">Sur le plan</h2>
             <Link to="/map" className="flex items-center text-meta text-gris underline underline-offset-4">
               Ouvrir La Carte
             </Link>

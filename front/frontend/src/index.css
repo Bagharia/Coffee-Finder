@@ -35,13 +35,15 @@
   --font-voix: "Instrument Serif", ui-serif, Georgia, "Times New Roman", serif;
 
   /* --- Échelle ---------------------------------------------------------- */
-  /* Titre de page. La graisse 600 était réservée à l'accroche géante de
-     l'accueil, qui n'existe plus : un titre de page se tient en 500, comme
-     les autres titres. */
-  --text-titre: clamp(2rem, 4vw, 3rem);
-  --text-titre--line-height: 1.08;
-  --text-titre--letter-spacing: -0.02em;
-  --text-titre--font-weight: 500;
+  /* Titre de page. Archivo est une grotesque de signalétique, neutre par
+     construction : à grande taille elle n'a de présence que si on la pousse.
+     600 est sa graisse la plus lourde chargée, le crénage se resserre à mesure
+     que le corps grandit, et l'interlignage descend sous 1 pour que deux
+     lignes forment un bloc plutôt qu'une liste. */
+  --text-titre: clamp(2.5rem, 5.5vw, 4rem);
+  --text-titre--line-height: 0.98;
+  --text-titre--letter-spacing: -0.035em;
+  --text-titre--font-weight: 600;
 
   --text-section: 1.75rem;
   --text-section--line-height: 1.15;

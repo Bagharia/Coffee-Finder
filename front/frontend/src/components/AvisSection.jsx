@@ -95,7 +95,7 @@ export default function AvisSection({ cafeId }) {
   return (
     <section>
       <div className="mb-6 flex items-end justify-between gap-4">
-        <h2 className="text-section text-encre">Avis Des Lecteurs</h2>
+        <h2 className="text-section text-encre">Avis des lecteurs</h2>
         {moyenne !== null && (
           <p className="text-meta text-gris">
             {String(moyenne).replace(".", ",")} sur 5, {total} avis

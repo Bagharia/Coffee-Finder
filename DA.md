@@ -112,8 +112,13 @@ d'où le plancher de taille ci-dessous.
 Règles fermes :
 
 - **Une majuscule au début de chaque mot** dans les textes d'interface —
-  navigation, titres, boutons, libellés, états. Décision du 2026-09-03, qui
-  revient sur le bas de casse d'origine.
+  navigation, boutons, libellés, états. Décision du 2026-09-03, qui revient sur
+  le bas de casse d'origine.
+- **Sauf les titres**, qui suivent la convention française : capitale au premier
+  mot seulement. « Le guide », « Créer un compte », « Sur le plan ». Ajusté le
+  2026-09-04 : à 13 px dans un menu, la capitale à chaque mot passe inaperçue ;
+  à 64 px en pleine page, elle se lit comme une traduction automatique, parce
+  que c'est une convention anglaise.
 
   La règle précédente disait : « bas de casse partout, les plaques de rue
   parisiennes sont elles-mêmes en bas de casse ». Elle est conservée ici pour

@@ -49,7 +49,7 @@ export default function Register() {
 
   return (
     <div className="mx-auto max-w-sm px-6 py-16">
-      <h1 className="text-titre text-encre">Créer Un Compte</h1>
+      <h1 className="text-titre text-encre">Créer un compte</h1>
       <p className="chapo">Pour Garder Vos Adresses Et Donner Votre Avis.</p>
 
       {erreur && <p className="mt-6 text-meta text-rouge">{erreur}</p>}

@@ -42,7 +42,7 @@ export default function CategoryPage() {
     <div className="bg-papier">
       <div className="border-b border-trait px-6 py-12">
         <div className="mx-auto max-w-5xl">
-          <h1 className="text-titre text-encre">{specialite.toLowerCase()}</h1>
+          <h1 className="text-titre text-encre">{specialite}</h1>
           <p className="chapo" aria-live="polite">
             {chargement
               ? "on regarde…"

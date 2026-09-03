@@ -31,10 +31,12 @@ composant.
 ## Règles de travail
 
 - **Français partout** : interface, messages d'erreur, commentaires, commits.
-- **Une majuscule au début de chaque mot** dans les textes d'interface. Écrite
-  dans les chaînes, jamais par `text-transform` : la transformation CSS
-  toucherait aussi les noms venant de la base. Révision du 2026-09-03 — la DA
-  imposait le bas de casse jusque-là, et garde trace de l'ancienne règle.
+- **Une majuscule au début de chaque mot** dans les textes d'interface, **sauf
+  les titres** (`h1`, `h2`) qui prennent la capitale au premier mot seulement,
+  comme le veut le français. Écrite dans les chaînes, jamais par
+  `text-transform` : la transformation CSS toucherait aussi les noms venant de
+  la base. Révisions des 2026-09-03 et 2026-09-04, la DA garde trace des règles
+  précédentes.
 - Ne jamais lancer de migration ni de `DROP` sans me demander d'abord.
 - Ne pas installer de dépendance sans me demander. La stack ci-dessus suffit
   pour presque tout ; une lib de plus, c'est une dette de plus.

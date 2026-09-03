@@ -58,7 +58,7 @@ export default function CafePage() {
       <div className="border-b border-trait px-6 py-12">
         <div className="mx-auto flex max-w-6xl flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-titre text-encre">Le Guide</h1>
+            <h1 className="text-titre text-encre">Le guide</h1>
             <p className="chapo" aria-live="polite">{compte}</p>
           </div>
           <button

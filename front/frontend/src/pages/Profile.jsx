@@ -51,7 +51,7 @@ export default function Profile() {
     <div className="mx-auto max-w-5xl px-6 py-12">
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-trait pb-6">
         <div>
-          <h1 className="text-titre text-encre">{utilisateur?.username ?? "mon compte"}</h1>
+          <h1 className="text-titre text-encre">{utilisateur?.username ?? "Mon compte"}</h1>
           <p className="chapo">
             {favoris.length} adresse{favoris.length === 1 ? "" : "s"} en favori
           </p>
@@ -118,12 +118,12 @@ export default function Profile() {
       {onglet === "reglages" && (
         <div className="mt-8 flex flex-col gap-10">
           <section>
-            <h2 className="mb-4 text-meta text-gris">Changer De Mot De Passe</h2>
+            <h2 className="mb-4 text-meta text-gris">Changer de mot de passe</h2>
             <ProfileMotDePasse />
           </section>
 
           <section>
-            <h2 className="mb-4 text-meta text-gris">Mes Avis</h2>
+            <h2 className="mb-4 text-meta text-gris">Mes avis</h2>
             <p className="mesure text-corps text-encre">
               vos avis se retrouvent sur la fiche de chaque adresse, à l&apos;endroit où vous les avez écrits.
             </p>

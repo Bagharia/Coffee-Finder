@@ -10,6 +10,51 @@ fait, en absolu.
 
 ---
 
+## 2026-09-03 — Dépendances : 23 vulnérabilités, dont une dans la vérification JWT
+
+Réflexe de fin de chantier : `npm audit` sur les deux paquets, jamais lancé
+depuis le début de ce travail. Il ne remonte que ce qui est déjà installé — il
+fallait donc juste demander.
+
+Résultat : 8 vulnérabilités au back, 15 au front, dont 19 en sévérité haute.
+La plus sérieuse n'était pas où on l'attendrait : `jsonwebtoken@9.0.2` tirait
+`jws@3.2.2`, qui **vérifie mal les signatures HMAC**
+(GHSA-869p-cjfg-cm3x) — exactement le mécanisme qui protège chaque route admin
+de ce projet. `mysql2` en avait deux : une régression d'authentification qui
+laisse fuiter le mot de passe en clair, et un déni de service par
+décompression. Le reste touchait `express` (`path-to-regexp`, `qs`), `vite` et
+`react-router` côté front.
+
+Toutes corrigées par `npm update`, dans les plages déjà déclarées par
+`package.json` (`^9.0.2`, `^3.15.3`, `^7.9.6`…) : aucune dépendance nouvelle,
+aucune borne changée, juste des correctifs déjà couverts par les intervalles
+existants et jamais récupérés. `npm audit` retombe à zéro des deux côtés.
+
+**Un effet de bord, et pourquoi je ne l'ai pas laissé filer.** La mise à jour a
+fait passer `eslint-plugin-react-hooks` de 7.0.1 à 7.1.1, toujours dans la
+plage `^7.0.1`. Cette version active deux règles plus strictes — interdiction
+d'appeler `setState` de façon synchrone dans un effet, interdiction de
+`Date.now()` pendant le rendu — qui ont fait échouer le lint sur cinq
+composants existants, tous écrits avant cette règle et jamais revus depuis.
+Corriger ces cinq composants aurait été un vrai chantier, sans rapport avec des
+failles de sécurité : rien de ce que ces règles signalent n'est exploitable, ce
+sont des recommandations de fraîcheur React. Le plugin n'est d'ailleurs
+concerné par aucune vulnérabilité — c'est un outil de développement, jamais
+expédié au navigateur. Repointé sur 7.0.1 pour garder le lint propre sans
+absorber ce chantier dans une passe de sécurité.
+
+**Le réflexe :** une mise à jour de dépendances peut réparer une faille et
+casser autre chose dans le même geste — ici un plugin de lint, ailleurs ça
+pourrait être un comportement. Vérifier ce qui a bougé avant de tout accepter
+en bloc, et séparer ce qui relève de la sécurité de ce qui relève d'une
+opinion plus récente sur comment écrire du code React.
+
+`npm audit` n'a tourné qu'une fois, à la fin. Ça devrait faire partie du
+passage régulier, pas d'un grand ménage occasionnel — une vulnérabilité comme
+celle de `jws` reste ouverte tant que personne ne demande.
+
+---
+
 ## 2026-09-03 — Comptes, mots de passe, sessions
 
 ### Le sel, d'abord : il était déjà là

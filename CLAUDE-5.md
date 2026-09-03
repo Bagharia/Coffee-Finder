@@ -122,6 +122,12 @@ d'usage.
   Lister les colonnes et aliaser (`cafes.id AS id`, `criteres_cafe.id AS
   critere_id`).
 - Requêtes toujours paramétrées (`?`). C'est déjà le cas, ça doit le rester.
+- **Toute lecture d'adresses ignore la corbeille** (`cafes.supprime_le IS NULL`).
+  Le filtre est posé une fois dans `listerCafes`, pas recopié route par route :
+  l'oubli exposerait des fiches supprimées. Une route qui veut les voir passe
+  `portee` explicitement.
+- Une saisie destinée à un `LIKE` passe par `echapperLike`. Sans ça, un `%`
+  dans la recherche remonte toute la table.
 - La liste de colonnes des adresses vit dans `utils/cafes.js`, en un seul
   exemplaire. Elle a été recopiée dans `favoriController` par le passé : la
   migration 006 n'en a corrigé qu'une, et la page des favoris a répondu 500.
@@ -251,9 +257,16 @@ auront servi, pas avant.
 la préparation du back à l'hébergement ; les horaires exploitables et
 « ouvert maintenant » — détail et raisonnement dans `alexis.md`.
 
+**Aussi fait.** Corbeille (suppression réversible), refus des doublons
+d'adresse, recherche libre `?q=`, téléversement d'images sur le disque local.
+
 **Reste.**
 
 1. Wendy saisit de vraies adresses. Le reste attend ça.
 2. Les fermetures exceptionnelles, si le besoin se confirme.
-3. Le déploiement, en suivant `back/ADMIN_GUIDE.md` — pas avant que le guide
+3. **Le stockage des images avant d'héberger.** Elles vivent sur le disque du
+   serveur : chez un PaaS ce disque est éphémère et elles disparaîtraient à
+   chaque redéploiement. Volume persistant, ou passage sur un service d'objets.
+4. Une sauvegarde automatique de la base — proposée, pas encore faite.
+5. Le déploiement, en suivant `back/ADMIN_GUIDE.md` — pas avant que le guide
    contienne assez d'adresses réelles pour valoir d'être montré.

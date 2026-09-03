@@ -10,6 +10,106 @@ fait, en absolu.
 
 ---
 
+## 2026-09-03 — Corbeille, doublons, recherche, images
+
+Quatre ajouts d'un coup. Trois sont de petites choses ; le quatrième porte une
+réserve qu'il faut avoir en tête au moment d'héberger.
+
+### La suppression détruisait les avis des visiteurs
+
+`DELETE /api/cafes/:id` faisait un vrai `DELETE`, et les contraintes de clé
+étrangère emportaient en cascade les critères, les avis et les favoris. Une
+seule personne administre le guide : un clic malheureux effaçait sans filet, et
+rien dans l'interface ne distinguait « je retire cette fiche » de « je détruis
+aussi tout ce que les visiteurs ont écrit dessus ».
+
+Migration 008 : une colonne `supprime_le`. La ligne reste, les cascades ne se
+déclenchent pas, la fiche redevient visible d'un `UPDATE`. La destruction
+définitive existe toujours mais se demande explicitement (`?definitif=1`).
+
+Le point délicat n'est pas la suppression, c'est **de ne pas oublier le filtre**.
+Chaque lecture doit désormais ignorer la corbeille, et un oubli exposerait une
+fiche supprimée sur le site public. D'où le filtre posé une seule fois, dans
+`listerCafes`, plutôt que recopié dans les douze routes de lecture : une route
+ajoutée demain hérite du bon comportement sans que personne n'y pense. Les
+routes qui veulent voir la corbeille doivent le demander.
+
+**Le réflexe :** quand une règle doit s'appliquer partout, la poser à l'endroit
+par lequel tout passe, jamais à chaque point d'usage. Un filtre de sécurité
+qu'on doit se rappeler d'écrire est un filtre qu'on oubliera.
+
+### Deux fiches pouvaient occuper la même adresse
+
+Rien ne l'empêchait. À cinq adresses ça se voit, à cinquante non.
+
+La difficulté est que l'égalité de chaînes ne sert à rien ici : « 12 Rue de
+Bretagne, 75003 Paris » et « 12 rue de bretagne 75003 paris » sont le même
+lieu, et une contrainte `UNIQUE` en base ne les distinguerait pas. La
+comparaison se fait donc sur une forme normalisée — sans accents, sans casse,
+sans ponctuation.
+
+**Ce que je n'ai pas fait, et pourquoi.** La solution évidente serait de
+stocker cette forme normalisée dans une colonne indexée : la vérification
+deviendrait une lecture indexée au lieu d'un parcours. Mais ce serait une
+deuxième source de vérité pour l'adresse — quelqu'un modifierait `adresse` sans
+recalculer sa version normalisée, et les deux divergeraient. C'est exactement
+le motif qui a déjà coûté la page des favoris dans ce projet. Elle est donc
+recalculée à chaque écriture, qui sont rares sur un guide tenu par une
+personne. Si la table grandit, c'est cette fonction-là qu'il faudra revoir, et
+le commentaire le dit.
+
+**Le réflexe :** une optimisation qui duplique une donnée se paie en cohérence.
+Sur un volume qui ne le justifie pas encore, le parcours naïf est le bon choix
+— et il faut écrire dans le code à partir de quand il cessera de l'être.
+
+### La recherche ne cherchait pas
+
+`searchCafes` ne savait faire que de l'égalité stricte et du `FIND_IN_SET`.
+Impossible de taper trois lettres et de trouver. Ajout d'un `?q=` qui balaie le
+nom, l'adresse, la description et le verdict.
+
+Un `LIKE` suffit à cette échelle ; le commentaire indique quand passer à un
+index `FULLTEXT`. Un détail compte : les jokers SQL sont échappés. Sans ça, une
+recherche contenant `%` remonte toute la table et `_` remplace silencieusement
+n'importe quel caractère — testé, `q=%` renvoie bien zéro résultat.
+
+### Les images : ça marche, et ça ne survivra pas au déploiement
+
+Wendy devait trouver une image hébergée ailleurs et en coller le lien.
+Désormais `POST /api/cafes/:id/image` accepte un fichier.
+
+Quelques décisions qui méritent d'être écrites :
+
+- **Le SVG est refusé.** C'est un document qui peut porter du script, et il
+  serait servi depuis notre propre origine. Liste blanche de formats, jamais
+  liste noire.
+- **Le fichier est gardé en mémoire jusqu'à validation**, puis écrit. Écrire
+  d'abord et valider ensuite laisserait un fichier orphelin à chaque refus.
+- **Le nom est tiré au hasard.** Reprendre celui fourni par le client
+  laisserait choisir un chemin, et deux envois du même nom s'écraseraient.
+- **L'ancienne image n'est effacée qu'après** la mise à jour en base. Dans
+  l'ordre inverse, un échec du `UPDATE` laisserait la fiche pointer vers un
+  fichier qu'on vient de supprimer.
+- **Servies sous `/api/uploads`** et non à la racine : en développement le
+  proxy Vite ne relaie que `/api`, en production le front et l'API partagent
+  déjà ce préfixe. Rangées ailleurs, elles seraient introuvables dans l'un des
+  deux cas.
+
+**La réserve, à ne pas oublier :** les fichiers vivent sur le disque du
+serveur. Chez un hébergeur PaaS ce disque est éphémère — **les images
+disparaîtront à chaque redéploiement** s'il n'y a pas de volume persistant.
+C'était le compromis assumé au moment de choisir : le stockage sur un service
+d'objets (S3, R2, Cloudinary) est la solution durable mais demandait un compte,
+des clés et un fournisseur à choisir, pour une fonctionnalité dont on ne sait
+pas encore si elle servira beaucoup. C'est écrit dans `ADMIN_GUIDE.md` et dans
+le chantier en cours du CLAUDE.md.
+
+**Le réflexe :** un compromis assumé n'est un compromis que s'il est écrit. Non
+écrit, c'est un piège qu'on redécouvre le jour du déploiement, quand les images
+de Wendy auront disparu sans explication.
+
+---
+
 ## 2026-09-03 — Dépendances : 23 vulnérabilités, dont une dans la vérification JWT
 
 Réflexe de fin de chantier : `npm audit` sur les deux paquets, jamais lancé

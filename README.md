@@ -152,7 +152,10 @@ reste dans le journal du serveur : le client ne reçoit jamais un message SQL.
 | `GET` | `/api/cafes/:id` | public — 404 si l'adresse n'existe pas |
 | `GET` | `/api/cafes/random` | public |
 | `GET` | `/api/cafes/nouveautes` | public — 30 derniers jours |
-| `GET` | `/api/cafes/search?arrondissement=&specialite=&wifi=&prix=&ambiance=&prises=&theme=&nb_personnes=&coup_de_coeur=` | public |
+| `GET` | `/api/cafes/search?q=&arrondissement=&specialite=&wifi=&prix=&ambiance=&prises=&theme=&nb_personnes=&coup_de_coeur=` | public |
+| `GET` | `/api/cafes/corbeille` | session admin |
+| `POST` | `/api/cafes/:id/restaurer` | session admin |
+| `POST`, `DELETE` | `/api/cafes/:id/image` | session admin |
 | `GET` | `/api/cafes/arrondissement/:arr` | public |
 | `GET` | `/api/cafes/specialite/:spec` | public |
 | `GET` | `/api/cafes/wifi/:wifi` | public — `0` ou `1` |
@@ -197,7 +200,7 @@ la requête est ignoré. La promotion en admin se fait en base, voir
 
 | Table | Contenu |
 |---|---|
-| `cafes` | nom, arrondissement, adresse, description, image, coordonnées, `verdict`, `coup_de_coeur` |
+| `cafes` | nom, arrondissement, adresse, description, image, coordonnées, `verdict`, `coup_de_coeur`, `supprime_le` (corbeille) |
 | `criteres_cafe` | wifi, prises, prix, ambiance, thème, spécialité |
 | `cafe_horaires` | **seule source des horaires** : `jour` de 1 (lundi) à 7, `ouverture`, `fermeture`. Pas de ligne = fermé ce jour-là, plusieurs lignes = service coupé, `fermeture` avant `ouverture` = fermeture après minuit. L'API les renvoie dans le champ `horaires` de chaque adresse |
 | `users` | compte, rôle `user` ou `admin`, `jeton_version` pour révoquer les sessions |

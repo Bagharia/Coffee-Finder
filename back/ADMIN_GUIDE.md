@@ -139,6 +139,72 @@ maintenant » la traite.
 Sur un `PUT`, omettre `horaires` laisse les plages en place ; envoyer un
 tableau vide les efface. Ce sont deux intentions différentes.
 
+## La photo d'une adresse
+
+Deux façons de renseigner `image_url` :
+
+```bash
+# 1. téléverser un fichier — il est rangé dans back/uploads/
+curl -b session.txt -X POST http://localhost:3000/api/cafes/1/image \
+  -F "image=@photo.jpg"
+
+# 2. ou coller l'adresse d'une image hébergée ailleurs
+curl -b session.txt -X PUT http://localhost:3000/api/cafes/1 \
+  -H "Content-Type: application/json" \
+  -d '{"image_url": "https://exemple.fr/photo.jpg"}'
+```
+
+Formats acceptés : JPEG, PNG, WebP, AVIF. 5 Mo au maximum. Le SVG est refusé
+volontairement : c'est un document qui peut porter du script, et il serait
+servi depuis notre propre origine.
+
+Remplacer une image téléversée efface l'ancien fichier. `DELETE
+/api/cafes/1/image` retire la photo — la fiche retombe alors sur `.image-repli`,
+ce que la DA considère comme le cas normal.
+
+**À savoir avant d'héberger :** les fichiers vivent sur le disque du serveur.
+Chez un hébergeur PaaS, ce disque est éphémère — les images disparaîtraient à
+chaque redéploiement. Il faudra soit un volume persistant, soit passer le
+stockage sur un service d'objets (S3, R2, Cloudinary). Les images collées par
+URL, elles, ne posent pas ce problème.
+
+## Mettre une adresse à la corbeille
+
+```bash
+# à la corbeille : la fiche disparaît du site, rien n'est détruit
+curl -b session.txt -X DELETE http://localhost:3000/api/cafes/1
+
+# la ressortir
+curl -b session.txt -X POST http://localhost:3000/api/cafes/1/restaurer
+
+# voir ce qui s'y trouve
+curl -b session.txt http://localhost:3000/api/cafes/corbeille
+
+# détruire pour de bon — emporte les critères, les avis et les favoris
+curl -b session.txt -X DELETE "http://localhost:3000/api/cafes/1?definitif=1"
+```
+
+Une suppression ordinaire est réversible : c'est le défaut parce qu'une seule
+personne administre le guide et qu'un clic malheureux ne doit pas effacer les
+avis que des visiteurs ont écrits. La destruction définitive se demande
+explicitement.
+
+## Chercher une adresse
+
+```bash
+curl "http://localhost:3000/api/cafes/search?q=belleville"
+```
+
+`q` cherche dans le nom, l'adresse, la description et le verdict. Il se combine
+avec les autres filtres (`arrondissement`, `prix`, `wifi`…).
+
+## Doublons
+
+Deux fiches ne peuvent pas occuper la même adresse. La comparaison ignore la
+casse, les accents et la ponctuation : « 12 Rue de Bretagne, 75003 Paris » et
+« 12 rue de bretagne 75003 paris » sont le même lieu. L'API répond 409 avec le
+nom de la fiche qui occupe déjà l'adresse.
+
 ## Modifier, supprimer
 
 ```bash
@@ -149,14 +215,14 @@ curl -b session.txt -X PUT http://localhost:3000/api/cafes/1 \
 curl -b session.txt -X DELETE http://localhost:3000/api/cafes/1
 ```
 
-Un `PUT` ne touche que les champs envoyés. Une suppression emporte les critères,
-les avis et les favoris de l'adresse (cascade).
+Un `PUT` ne touche que les champs envoyés. La suppression met à la corbeille —
+voir la section plus haut pour la destruction définitive.
 
 ## Qui peut quoi
 
 | Routes | Accès |
 |---|---|
-| `POST`, `PUT`, `DELETE /api/cafes` | session admin |
+| `POST`, `PUT`, `DELETE /api/cafes`, `/api/cafes/corbeille`, `/:id/restaurer`, `/:id/image` | session admin |
 | `/api/favoris/*`, `POST`/`DELETE /api/avis/*`, `/api/users/profile`, `/api/users/change-password` | session utilisateur |
 | `GET /api/cafes/*`, `GET /api/avis/:cafeId`, `/api/health` | public |
 

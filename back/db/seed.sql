@@ -1,8 +1,9 @@
 -- Jeu de données de départ, à exécuter après les migrations, jamais en production.
 -- Les images sont volontairement nulles : le front affiche alors son image de
 -- repli plutôt qu'une photo d'agence sans rapport avec l'adresse.
-
-USE spotheplace;
+-- Le nom de la base n'est plus écrit ici : un hébergeur impose le sien, et un
+-- `USE spotheplace` codé en dur rend le fichier inapplicable ailleurs. La base
+-- est choisie par la connexion — voir db/migrate.js.
 
 INSERT INTO cafes (nom, arrondissement, adresse, description) VALUES
 ('Café de Flore', '6e', '172 Boulevard Saint-Germain, 75006 Paris', NULL),

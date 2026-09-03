@@ -1,10 +1,9 @@
 -- 001 — schéma initial : adresses, critères, comptes.
 -- Reprend l'ancien init-db-correct.sql, à l'identique, pour que les bases déjà
 -- créées avec lui soient considérées comme ayant appliqué cette migration.
-
-CREATE DATABASE IF NOT EXISTS spotheplace
-  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE spotheplace;
+-- Le nom de la base n'est plus écrit ici : un hébergeur impose le sien, et un
+-- `USE spotheplace` codé en dur rend le fichier inapplicable ailleurs. La base
+-- est choisie par la connexion — voir db/migrate.js.
 
 CREATE TABLE IF NOT EXISTS cafes (
   id INT AUTO_INCREMENT PRIMARY KEY,

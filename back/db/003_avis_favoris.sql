@@ -4,8 +4,9 @@
 -- L'index UNIQUE(user_id, cafe_id) n'est pas décoratif : c'est lui qui rend
 -- possible l'ON DUPLICATE KEY UPDATE de addOrUpdateAvis, et il interdit à un
 -- compte de noter deux fois la même adresse.
-
-USE spotheplace;
+-- Le nom de la base n'est plus écrit ici : un hébergeur impose le sien, et un
+-- `USE spotheplace` codé en dur rend le fichier inapplicable ailleurs. La base
+-- est choisie par la connexion — voir db/migrate.js.
 
 CREATE TABLE IF NOT EXISTS avis (
   id INT AUTO_INCREMENT PRIMARY KEY,

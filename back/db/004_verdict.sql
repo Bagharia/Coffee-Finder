@@ -4,8 +4,9 @@
 -- moyenne. Le verdict appartient à l'adresse, pas à la table des avis.
 --
 -- Syntaxe portable MySQL 8 / MariaDB, voir 002.
-
-USE spotheplace;
+-- Le nom de la base n'est plus écrit ici : un hébergeur impose le sien, et un
+-- `USE spotheplace` codé en dur rend le fichier inapplicable ailleurs. La base
+-- est choisie par la connexion — voir db/migrate.js.
 
 ALTER TABLE cafes
   ADD COLUMN verdict TEXT NULL,

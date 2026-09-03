@@ -4,8 +4,9 @@
 -- autorisés du rouge dans la DA.
 -- Convention : jour 1 = lundi … 7 = dimanche. Absence de ligne pour un jour
 -- = fermé ce jour-là. Plusieurs lignes par jour = service coupé (midi / soir).
-
-USE spotheplace;
+-- Le nom de la base n'est plus écrit ici : un hébergeur impose le sien, et un
+-- `USE spotheplace` codé en dur rend le fichier inapplicable ailleurs. La base
+-- est choisie par la connexion — voir db/migrate.js.
 
 CREATE TABLE IF NOT EXISTS cafe_horaires (
   id INT AUTO_INCREMENT PRIMARY KEY,

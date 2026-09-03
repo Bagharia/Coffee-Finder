@@ -86,7 +86,7 @@ export default function CafeCard({ cafe, initialFavorite, prioritaire = false })
       <div className="flex flex-1 flex-col gap-2 p-4">
         {categorie && <span className="plaque self-start">{categorie.toLowerCase()}</span>}
 
-        <h3 className="text-nom text-encre">
+        <h3 className="text-adresse text-encre">
           {/* Le lien couvre toute la carte via son ::after : la carte reste un
               article, pas un div cliquable. */}
           <Link to={`/cafe/${cafe.id}`} className="after:absolute after:inset-0">

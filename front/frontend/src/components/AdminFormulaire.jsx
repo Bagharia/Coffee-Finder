@@ -61,6 +61,7 @@ export default function AdminFormulaire({ valeurs, onChange, onEnvoyer, onAnnule
 
       <AdminImage
         cafeId={cafeId}
+        nom={valeurs.nom}
         imageUrl={valeurs.image_url}
         onChangeUrl={(url) => modifier("image_url", url)}
         onTeleverse={(url) => { modifier("image_url", url); onImageTeleversee?.(); }}
@@ -103,7 +104,7 @@ export default function AdminFormulaire({ valeurs, onChange, onEnvoyer, onAnnule
               aria-pressed={valeurs.specialite.includes(specialite)}
               onClick={() => basculerSpecialite(specialite)}
               className={`flex items-center px-4 text-meta ${
-                valeurs.specialite.includes(specialite) ? "bg-plaque text-white" : "border border-trait text-encre"
+                valeurs.specialite.includes(specialite) ? "bg-plaque text-white" : "border border-trait-fort text-encre"
               }`}
             >
               {specialite.toLowerCase()}
@@ -161,7 +162,7 @@ export default function AdminFormulaire({ valeurs, onChange, onEnvoyer, onAnnule
         <button type="submit" disabled={enCours} className="flex items-center bg-plaque px-6 text-white disabled:opacity-60">
           {enCours ? "enregistrement…" : "enregistrer"}
         </button>
-        <button type="button" onClick={onAnnuler} className="flex items-center border border-trait px-6 text-encre">
+        <button type="button" onClick={onAnnuler} className="flex items-center border border-trait-fort px-6 text-encre">
           annuler
         </button>
       </div>

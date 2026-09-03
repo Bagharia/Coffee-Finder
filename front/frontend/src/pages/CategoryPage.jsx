@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import CafeCard from "../components/CafeCard";
-import { cafesAPI, LIMITE_MAX } from "../services/api";
+import { cafesAPI } from "../services/api";
+import { useListePaginee } from "../hooks/useListePaginee";
 
 // L'URL peut arriver sous plusieurs formes selon d'où l'on vient.
 // La spécialité stockée en base, elle, est unique.
@@ -18,42 +19,34 @@ const SPECIALITES = {
   "Thé": "Thé"
 };
 
+const PAR_PAGE = 12;
+
 export default function CategoryPage() {
   const { category } = useParams();
   const specialite = SPECIALITES[category] ?? category;
 
-  // On retient la spécialité à laquelle appartient la réponse : tant qu'elle ne
-  // correspond pas à celle de l'URL, l'écran est en chargement. Évite de poser
-  // un état en plein corps d'effet à chaque changement de catégorie.
-  const [reponse, setReponse] = useState({ specialite: null, cafes: [], erreur: null });
-  const chargement = reponse.specialite !== specialite;
-  const { cafes, erreur } = reponse;
+  // La spécialité fait office de filtre : changer de catégorie relance le
+  // chargement à la page 1, et le hook ignore les réponses devenues obsolètes.
+  const filtres = useMemo(() => ({ specialite }), [specialite]);
 
-  useEffect(() => {
-    let obsolete = false;
+  const recuperer = useCallback(
+    ({ page }) => cafesAPI.getBySpecialite(specialite, { page, limite: PAR_PAGE }),
+    [specialite]
+  );
 
-    cafesAPI.getBySpecialite(specialite, { limite: LIMITE_MAX })
-      .then((res) => {
-        if (!obsolete) setReponse({ specialite, cafes: res.donnees, erreur: null });
-      })
-      .catch((err) => {
-        if (!obsolete) setReponse({ specialite, cafes: [], erreur: err.message });
-      });
-
-    // Une réponse qui arrive après un changement de catégorie ne doit pas
-    // écraser la nouvelle.
-    return () => { obsolete = true; };
-  }, [specialite]);
+  const {
+    adresses: cafes, total, chargement, chargementSuite, erreur, encore, chargerPlus
+  } = useListePaginee(recuperer, filtres);
 
   return (
     <div className="bg-papier">
       <div className="border-b border-trait px-6 py-12">
         <div className="mx-auto max-w-5xl">
           <h1 className="text-section text-encre">{specialite.toLowerCase()}</h1>
-          <p className="mt-1 text-meta text-gris">
+          <p className="mt-1 text-meta text-gris" aria-live="polite">
             {chargement
               ? "on regarde…"
-              : `${cafes.length} adresse${cafes.length > 1 ? "s" : ""} à paris`}
+              : `${total} adresse${total > 1 ? "s" : ""} à paris`}
           </p>
         </div>
       </div>
@@ -72,18 +65,36 @@ export default function CategoryPage() {
             <p className="text-corps text-encre">
               aucune adresse en {specialite.toLowerCase()} dans le guide pour l&apos;instant.
             </p>
-            <Link to="/cafes" className="mt-6 inline-flex items-center bg-plaque px-6 text-white">
+            <Link to="/cafes" className="mt-6 inline-flex min-h-11 items-center bg-plaque px-6 text-white">
               parcourir tout le guide
             </Link>
           </div>
         ) : (
-          <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {cafes.map((cafe, index) => (
-              <li key={cafe.id}>
-                <CafeCard cafe={cafe} prioritaire={index < 4} />
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {cafes.map((cafe, index) => (
+                <li key={cafe.id}>
+                  <CafeCard cafe={cafe} prioritaire={index < 4} />
+                </li>
+              ))}
+            </ul>
+
+            {encore && (
+              <div className="mt-10 flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  onClick={chargerPlus}
+                  disabled={chargementSuite}
+                  className="flex min-h-11 items-center border border-trait-fort px-6 text-encre disabled:opacity-60"
+                >
+                  {chargementSuite ? "on charge…" : "voir la suite"}
+                </button>
+                <p className="text-meta text-gris" aria-live="polite">
+                  {cafes.length} sur {total}
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

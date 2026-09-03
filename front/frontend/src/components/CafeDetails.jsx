@@ -171,7 +171,7 @@ export default function CafeDetails() {
           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cafe.adresse)}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-8 inline-flex items-center border border-trait px-6 text-encre"
+          className="mt-8 inline-flex items-center border border-trait-fort px-6 text-encre"
         >
           ouvrir dans un plan
         </a>

@@ -117,7 +117,7 @@ export default function AvisSection({ cafeId }) {
                       aria-pressed={note === valeur}
                       onClick={() => setNote(valeur)}
                       className={`flex w-11 items-center justify-center ${
-                        note === valeur ? "bg-plaque text-white" : "border border-trait text-encre"
+                        note === valeur ? "bg-plaque text-white" : "border border-trait-fort text-encre"
                       }`}
                     >
                       {valeur}
@@ -133,7 +133,7 @@ export default function AvisSection({ cafeId }) {
                   onChange={(e) => setCommentaire(e.target.value)}
                   rows={4}
                   maxLength={2000}
-                  className="w-full border border-trait bg-carte p-3 text-corps text-encre"
+                  className="w-full border border-trait-fort bg-carte p-3 text-corps text-encre"
                 />
               </label>
 
@@ -143,14 +143,14 @@ export default function AvisSection({ cafeId }) {
                 <button type="submit" disabled={envoiEnCours} className="flex items-center bg-plaque px-6 text-white disabled:opacity-60">
                   {envoiEnCours ? "envoi…" : "publier"}
                 </button>
-                <button type="button" onClick={() => setFormulaireOuvert(false)} className="flex items-center border border-trait px-6 text-encre">
+                <button type="button" onClick={() => setFormulaireOuvert(false)} className="flex items-center border border-trait-fort px-6 text-encre">
                   annuler
                 </button>
               </div>
             </form>
           ) : (
             <div className="flex flex-wrap gap-3">
-              <button type="button" onClick={() => setFormulaireOuvert(true)} className="flex items-center border border-trait px-6 text-encre">
+              <button type="button" onClick={() => setFormulaireOuvert(true)} className="flex items-center border border-trait-fort px-6 text-encre">
                 {monAvis ? "modifier mon avis" : "donner mon avis"}
               </button>
               {monAvis && (

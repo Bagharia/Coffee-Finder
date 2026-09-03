@@ -13,7 +13,7 @@ export default function NavbarMenuMobile({ categories, connecte, estAdmin, onFer
       />
 
       <nav className="absolute right-0 top-0 flex h-full w-72 flex-col gap-6 border-l border-trait bg-papier p-8 pt-20">
-        <Link to="/" onClick={onFermer} className="text-nom text-encre">accueil</Link>
+        <Link to="/" onClick={onFermer} className="text-adresse text-encre">accueil</Link>
 
         <div className="border-t border-trait pt-4">
           <p className="mb-3 text-meta text-gris">spécialités</p>
@@ -32,7 +32,7 @@ export default function NavbarMenuMobile({ categories, connecte, estAdmin, onFer
           </ul>
         </div>
 
-        <Link to="/map" onClick={onFermer} className="text-nom text-encre">carte</Link>
+        <Link to="/map" onClick={onFermer} className="text-adresse text-encre">carte</Link>
 
         {estAdmin && (
           <Link to="/admin" onClick={onFermer} className="text-meta text-gris">administration</Link>
@@ -43,7 +43,7 @@ export default function NavbarMenuMobile({ categories, connecte, estAdmin, onFer
             <Link
               to="/profile"
               onClick={onFermer}
-              className="flex items-center justify-center border border-trait px-4 text-encre"
+              className="flex items-center justify-center border border-trait-fort px-4 text-encre"
             >
               mon profil
             </Link>
@@ -52,7 +52,7 @@ export default function NavbarMenuMobile({ categories, connecte, estAdmin, onFer
               <Link
                 to="/login"
                 onClick={onFermer}
-                className="flex items-center justify-center border border-trait px-4 text-encre"
+                className="flex items-center justify-center border border-trait-fort px-4 text-encre"
               >
                 connexion
               </Link>

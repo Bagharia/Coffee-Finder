@@ -138,7 +138,7 @@ exports.getCafeWithAmbiance = (req, res) => listerCafes(req, res, {
 });
 
 exports.searchCafes = (req, res) => {
-    const { q, arrondissement, specialite, wifi, prix, ambiance, prises, theme, nb_personnes, coup_de_coeur } = req.query;
+    const { q, arrondissement, specialite, wifi, prix, ambiance, prises, travailler, theme, nb_personnes, nouveautes, coup_de_coeur } = req.query;
 
     const conditions = [];
     const valeurs = [];
@@ -195,6 +195,18 @@ exports.searchCafes = (req, res) => {
     if (prises === '0' || prises === '1') {
         conditions.push('criteres_cafe.prises = ?');
         valeurs.push(Number(prises));
+    }
+
+    if (travailler === '0' || travailler === '1') {
+        conditions.push('criteres_cafe.travailler = ?');
+        valeurs.push(Number(travailler));
+    }
+
+    // Même fenêtre que /api/cafes/nouveautes : les deux doivent s'accorder,
+    // sinon « arrivées récentes » et le filtre « nouveautés » ne montreraient
+    // pas les mêmes adresses.
+    if (nouveautes === '1') {
+        conditions.push('cafes.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)');
     }
 
     if (theme) {

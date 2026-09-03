@@ -25,7 +25,7 @@ export default function MapFeuille({ cafe, ouverte, onBasculer, onFermer }) {
         onClick={onBasculer}
         className="flex h-14 w-full items-center justify-between px-4 text-left"
       >
-        <span className="truncate text-nom text-encre">{cafe.nom}</span>
+        <span className="truncate text-adresse text-encre">{cafe.nom}</span>
         <span className="text-meta text-gris">{ouverte ? "réduire" : "détails"}</span>
       </button>
 
@@ -45,7 +45,7 @@ export default function MapFeuille({ cafe, ouverte, onBasculer, onFermer }) {
           <Link to={`/cafe/${cafe.id}`} className="flex items-center bg-plaque px-4 text-white">
             voir la fiche
           </Link>
-          <button type="button" onClick={onFermer} className="flex items-center border border-trait px-4 text-encre">
+          <button type="button" onClick={onFermer} className="flex items-center border border-trait-fort px-4 text-encre">
             fermer
           </button>
         </div>

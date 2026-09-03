@@ -15,7 +15,7 @@ const FORMATS = "image/jpeg,image/png,image/webp,image/avif";
  * Une adresse sans photo n'est pas un défaut : la DA en fait le cas normal et
  * `.image-repli` occupe la place. Rien n'est obligatoire ici.
  */
-export default function AdminImage({ cafeId, imageUrl, onChangeUrl, onTeleverse }) {
+export default function AdminImage({ cafeId, nom, imageUrl, onChangeUrl, onTeleverse }) {
   const champFichier = useRef(null);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState(null);
@@ -59,7 +59,7 @@ export default function AdminImage({ cafeId, imageUrl, onChangeUrl, onTeleverse 
         <div className="mb-3 flex items-start gap-4">
           <img
             src={imageUrl}
-            alt=""
+            alt={nom ? `photo actuelle de ${nom}` : "photo actuelle de l'adresse"}
             className="h-24 w-32 shrink-0 border border-trait object-cover"
           />
           {cafeId && (
@@ -86,7 +86,7 @@ export default function AdminImage({ cafeId, imageUrl, onChangeUrl, onTeleverse 
             accept={FORMATS}
             disabled={enCours}
             onChange={(e) => televerser(e.target.files?.[0])}
-            className="text-corps text-encre file:mr-3 file:border file:border-trait file:bg-carte file:px-3 file:py-1 file:text-meta file:text-encre"
+            className="text-corps text-encre file:mr-3 file:border file:border-trait-fort file:bg-carte file:px-3 file:py-1 file:text-meta file:text-encre"
           />
         </label>
       ) : (
@@ -103,7 +103,7 @@ export default function AdminImage({ cafeId, imageUrl, onChangeUrl, onTeleverse 
           type="url"
           value={imageUrl}
           onChange={(e) => onChangeUrl(e.target.value)}
-          className="w-full border border-trait bg-carte px-3 text-corps text-encre"
+          className="w-full border border-trait-fort bg-carte px-3 text-corps text-encre"
         />
       </label>
 

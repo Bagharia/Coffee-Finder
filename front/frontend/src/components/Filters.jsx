@@ -79,7 +79,7 @@ export default function Filters({ onFilterChange }) {
           </select>
         </label>
 
-        <fieldset className="border-t border-trait pt-4">
+        <fieldset className="border-t border-trait-fort pt-4">
           <legend className="mb-2 text-meta text-gris">équipements</legend>
           <div className="flex flex-col">
             {EQUIPEMENTS.map(([champ, libelle]) => (

@@ -65,7 +65,7 @@ export default function Home() {
               type="button"
               onClick={tirerAuSort}
               disabled={tirageEnCours}
-              className="flex items-center border border-trait px-6 text-encre disabled:opacity-60"
+              className="flex items-center border border-trait-fort px-6 text-encre disabled:opacity-60"
             >
               {tirageEnCours ? "on cherche…" : "au hasard"}
             </button>
@@ -141,7 +141,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="h-[420px] border border-trait">
+          <div className="aspect-[4/3] border border-trait sm:aspect-[21/9]">
             <Suspense fallback={<div className="squelette h-full w-full" />}>
               <Map />
             </Suspense>

@@ -36,7 +36,7 @@ export default function MapFiltres({ filtres, onChange, total }) {
         <select
           value={filtres.arrondissement}
           onChange={(e) => onChange({ ...filtres, arrondissement: e.target.value })}
-          className="border border-trait bg-carte px-3 text-meta text-encre"
+          className="border border-trait-fort bg-carte px-3 text-meta text-encre"
         >
           <option value="">tous les arrondissements</option>
           {ARRONDISSEMENTS.map((arr) => (

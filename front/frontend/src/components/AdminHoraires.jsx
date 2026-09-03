@@ -86,7 +86,7 @@ export default function AdminHoraires({ plages, onChange }) {
       <button
         type="button"
         onClick={copierLundi}
-        className="mt-3 flex h-11 items-center border border-trait px-4 text-meta text-encre"
+        className="mt-3 flex h-11 items-center border border-trait-fort px-4 text-meta text-encre"
       >
         copier le lundi sur toute la semaine
       </button>

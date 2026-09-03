@@ -20,12 +20,18 @@
   --color-encre: #2a2418;
   --color-gris: #6e6753;
   --color-trait: #d6cbae;
+
+  /* Le trait clair fait 1,36:1 sur papier : parfait pour un séparateur, très
+     insuffisant pour la limite d'un bouton ou d'un champ, où la WCAG 1.4.11
+     exige 3:1. Même teinte, assombrie jusqu'à passer : 3,13:1 sur papier,
+     3,66:1 sur carte. Ne pas l'éclaircir sans refaire le calcul. */
+  --color-trait-fort: #8f8460;
   --color-rouge: #a82f26;
 
   /* --- Familles ---------------------------------------------------------
      Instrument Serif n'existe qu'en une graisse : jamais de font-bold dessus,
      le navigateur la synthétiserait. */
-  --font-reperage: "Archivo", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: "Archivo", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-voix: "Instrument Serif", ui-serif, Georgia, "Times New Roman", serif;
 
   /* --- Échelle ---------------------------------------------------------- */
@@ -38,9 +44,9 @@
   --text-section--line-height: 1.15;
   --text-section--font-weight: 500;
 
-  --text-nom: 1.3125rem;
-  --text-nom--line-height: 1.2;
-  --text-nom--font-weight: 500;
+  --text-adresse: 1.3125rem;
+  --text-adresse--line-height: 1.2;
+  --text-adresse--font-weight: 500;
 
   --text-corps: 1.0625rem;
   --text-corps--line-height: 1.6;
@@ -51,6 +57,12 @@
   --text-meta: 0.8125rem;
   --text-meta--line-height: 1.4;
   --text-meta--font-weight: 500;
+
+  /* --- Rayon -------------------------------------------------------------
+     Une seule valeur : la plaque est presque carrée, et les blocs `bg-carte`
+     gardent des angles vifs — c'est un choix de la DA, pas un oubli. Elle
+     était écrite en dur à deux endroits. */
+  --radius-plaque: 2px;
 }
 
 /* ============================================================
@@ -58,12 +70,37 @@
    ============================================================ */
 
 @layer base {
+  /* iOS regrossit le texte en paysage sans ce réglage, ce qui décale toute
+     la mise en page sur un site qui se consulte debout dans la rue. */
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     background-color: var(--color-papier);
     color: var(--color-encre);
-    font-family: var(--font-reperage);
+    font-family: var(--font-sans);
     font-size: var(--text-corps);
     line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* `balance` répartit les titres courts sur leurs lignes au lieu de laisser
+     un mot seul en bas ; `pretty` fait la même chose pour la dernière ligne
+     des paragraphes. Sans coût, et le nom des adresses en profite. */
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background-color: var(--color-plaque);
+    color: var(--color-carte);
   }
 
   /* Le bas de casse est une règle d'écriture, pas une transformation CSS :
@@ -123,13 +160,13 @@
     align-items: center;
     max-width: 100%;
     padding: 0.5rem 0.875rem;
-    border-radius: 2px;
+    border-radius: var(--radius-plaque);
     background-color: var(--color-plaque);
     box-shadow:
       inset 0 0 0 3px var(--color-plaque),
       inset 0 0 0 4px #fff;
     color: #fff;
-    font-family: var(--font-reperage);
+    font-family: var(--font-sans);
     font-size: var(--text-meta);
     font-weight: 500;
     line-height: 1.4;
@@ -149,7 +186,7 @@
     box-shadow:
       inset 0 0 0 4px var(--color-plaque),
       inset 0 0 0 5px #fff;
-    font-size: var(--text-nom);
+    font-size: var(--text-adresse);
     line-height: 1.2;
   }
 
@@ -199,7 +236,7 @@
     padding: 0.5rem 0.875rem;
     background-color: var(--color-plaque);
     color: #fff;
-    font-family: var(--font-reperage);
+    font-family: var(--font-sans);
     font-size: var(--text-meta);
     font-weight: 500;
     line-height: 1.4;
@@ -211,7 +248,7 @@
      empêche la page de sauter.
      ========================================================== */
   .squelette {
-    border-radius: 2px;
+    border-radius: var(--radius-plaque);
     background-color: var(--color-trait);
   }
 
@@ -232,7 +269,7 @@
   /* Leaflet pose ses propres fonds blancs : on les ramène au papier. */
   .leaflet-container {
     background-color: var(--color-papier);
-    font-family: var(--font-reperage);
+    font-family: var(--font-sans);
   }
 
   /* Le corps de texte reste sous 70 caractères par ligne. */

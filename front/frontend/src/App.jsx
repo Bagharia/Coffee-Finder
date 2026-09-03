@@ -34,7 +34,10 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="min-h-screen flex flex-col bg-(--background)">
+        {/* Pas de couleur de fond ici : `body` porte déjà `--color-papier`.
+            L'ancien `bg-(--background)` visait un jeton qui n'existe pas et ne
+            produisait donc rien — un jeton qui ment sur son nom. */}
+        <div className="flex min-h-screen flex-col">
           <Navbar />
 
           <main className="flex-1 pt-16">

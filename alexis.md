@@ -10,6 +10,67 @@ fait, en absolu.
 
 ---
 
+## 2026-09-03 — Les quatre ajouts, côté écran
+
+Le back savait faire quatre choses de plus ; aucune n'existait dans
+l'interface. Une fonctionnalité qu'on ne peut pas déclencher depuis l'écran
+n'existe pas pour la personne qui s'en sert.
+
+### Un message qui mentait
+
+`Admin.jsx` demandait confirmation par : « supprimer « X » ? les avis et
+favoris partent avec. » C'était vrai la veille. Depuis la corbeille, la
+suppression est réversible et ne touche plus aux avis — le message décrivait
+donc une conséquence qui n'existait plus, et il décourageait une action devenue
+anodine.
+
+**Le réflexe :** un texte d'interface qui décrit un comportement est une
+affirmation sur le code. Quand le comportement change, ce texte est à corriger
+au même titre qu'un test qui échoue — sauf que rien ne le signale
+automatiquement. Chercher les messages concernés fait partie du changement.
+
+### Le téléversement ne peut pas exister à la création
+
+L'envoi vise une fiche par son identifiant, qui n'existe pas encore quand on
+remplit le formulaire de création. Plutôt que de bricoler un envoi en deux
+temps ou de garder le fichier en mémoire jusqu'à l'enregistrement, l'écran le
+dit : le champ de téléversement n'apparaît qu'en modification, et une phrase
+explique que la photo se pose au second passage. Le champ URL, lui, reste
+disponible dans les deux cas.
+
+**Le réflexe :** une contrainte technique qu'on ne peut pas supprimer se
+raconte à l'utilisateur au lieu d'être masquée par un contournement. Un
+formulaire qui explique pourquoi une case est absente est moins déroutant qu'un
+mécanisme invisible qui échoue une fois sur dix.
+
+### Deux recherches qui ne trouvent pas la même chose
+
+La recherche de la navbar filtre localement, sans réseau — à cette échelle
+c'est plus rapide qu'un appel par lettre tapée, et je l'ai gardée telle quelle
+plutôt que de la brancher sur le nouveau `?q=` de l'API.
+
+Mais elle ne regardait ni la description ni le verdict, que l'API couvre
+désormais. Deux recherches censées faire la même chose et qui ne trouvent pas
+les mêmes adresses, c'est un piège : celui qui teste l'une croit connaître le
+comportement de l'autre. Les champs ont donc été alignés, et le commentaire dit
+à quel moment il faudra basculer sur l'API — quand le guide dépassera
+`LIMITE_MAX`, puisque le chargement local cessera alors d'être complet et que
+la recherche locale mentirait par omission.
+
+**Le réflexe :** deux implémentations de la même intention doivent donner le
+même résultat, ou l'une des deux doit disparaître. Une divergence silencieuse
+entre elles est un bug qui attend son heure.
+
+### La destruction définitive demande deux confirmations
+
+Mettre à la corbeille demande une confirmation ordinaire. Détruire depuis la
+corbeille en demande une seconde, plus explicite, qui nomme ce qui part avec :
+c'est la seule action de cette interface qu'on ne peut pas défaire. La corbeille
+elle-même est repliée par défaut et ne charge son contenu qu'à l'ouverture —
+c'est un filet de rattrapage, pas un écran de travail.
+
+---
+
 ## 2026-09-03 — Corbeille, doublons, recherche, images
 
 Quatre ajouts d'un coup. Trois sont de petites choses ; le quatrième porte une

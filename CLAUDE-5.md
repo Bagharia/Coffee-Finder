@@ -258,7 +258,9 @@ la préparation du back à l'hébergement ; les horaires exploitables et
 « ouvert maintenant » — détail et raisonnement dans `alexis.md`.
 
 **Aussi fait.** Corbeille (suppression réversible), refus des doublons
-d'adresse, recherche libre `?q=`, téléversement d'images sur le disque local.
+d'adresse, recherche libre `?q=`, téléversement d'images sur le disque local —
+et leurs écrans côté front : corbeille repliable dans `/admin`, téléversement
+avec aperçu, recherche de la navbar élargie aux mêmes champs que l'API.
 
 **Reste.**
 

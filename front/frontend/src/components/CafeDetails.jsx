@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { cafesAPI, favorisAPI } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import AvisSection from "./AvisSection";
+import HorairesSemaine from "./HorairesSemaine";
 import Coeur from "../icons/Coeur";
 
 const PRIX = {
@@ -22,7 +23,6 @@ function Pratique({ cafe }) {
   const lignes = [
     ["adresse", cafe.adresse],
     ["arrondissement", cafe.arrondissement],
-    ["horaires", cafe.horaires],
     ["prix", cafe.prix ? (PRIX[cafe.prix] ?? cafe.prix) : null],
     ["capacité", cafe.nb_personnes ? `${cafe.nb_personnes} personnes` : null],
     ["spécialité", cafe.specialite?.split(",").map((s) => s.trim().toLowerCase()).join(", ")],
@@ -161,6 +161,8 @@ export default function CafeDetails() {
       {cafe.description && (
         <p className="mesure mt-8 text-corps text-encre">{cafe.description}</p>
       )}
+
+      <HorairesSemaine plages={cafe.horaires} />
 
       <Pratique cafe={cafe} />
 

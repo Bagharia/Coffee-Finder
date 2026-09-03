@@ -18,7 +18,7 @@ const FORMULAIRE_VIDE = {
   theme: "",
   ambiance: "",
   nb_personnes: "",
-  horaires: ""
+  horaires: []
 };
 
 export default function Admin() {
@@ -63,7 +63,13 @@ export default function Admin() {
       theme: cafe.theme ?? "",
       ambiance: cafe.ambiance ?? "",
       nb_personnes: cafe.nb_personnes ?? "",
-      horaires: cafe.horaires ?? "",
+      // L'API renvoie des TIME en HH:MM:SS, les champs <input type="time">
+      // veulent du HH:MM.
+      horaires: (cafe.horaires ?? []).map((p) => ({
+        jour: p.jour,
+        ouverture: p.ouverture.slice(0, 5),
+        fermeture: p.fermeture.slice(0, 5)
+      })),
       prix: cafe.prix ?? "1-10"
     });
     setErreurFormulaire(null);

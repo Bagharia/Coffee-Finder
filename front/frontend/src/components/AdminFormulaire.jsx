@@ -1,3 +1,5 @@
+import AdminHoraires from "./AdminHoraires";
+
 const SPECIALITES = ["Café", "Matcha", "Bubble Tea", "Thé"];
 
 const PRIX = [
@@ -117,11 +119,6 @@ export default function AdminFormulaire({ valeurs, onChange, onEnvoyer, onAnnule
         </label>
 
         <label>
-          <span className="mb-2 block text-meta text-gris">horaires</span>
-          <input value={valeurs.horaires} onChange={(e) => modifier("horaires", e.target.value)} className={champ} />
-        </label>
-
-        <label>
           <span className="mb-2 block text-meta text-gris">capacité</span>
           <input value={valeurs.nb_personnes} onChange={(e) => modifier("nb_personnes", e.target.value)} className={champ} />
         </label>
@@ -136,6 +133,8 @@ export default function AdminFormulaire({ valeurs, onChange, onEnvoyer, onAnnule
           <input value={valeurs.ambiance} onChange={(e) => modifier("ambiance", e.target.value)} className={champ} />
         </label>
       </div>
+
+      <AdminHoraires plages={valeurs.horaires} onChange={(plages) => modifier("horaires", plages)} />
 
       <fieldset>
         <legend className="mb-2 text-meta text-gris">équipements</legend>

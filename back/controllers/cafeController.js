@@ -21,7 +21,6 @@ const COLONNES_CAFE = `
     cafes.updated_at AS updated_at,
     criteres_cafe.id AS critere_id,
     criteres_cafe.nb_personnes AS nb_personnes,
-    criteres_cafe.horaires AS horaires,
     criteres_cafe.specialite AS specialite,
     criteres_cafe.prix AS prix,
     criteres_cafe.wifi AS wifi,
@@ -32,6 +31,102 @@ const COLONNES_CAFE = `
 `;
 
 const JOINTURE = 'FROM cafes JOIN criteres_cafe ON cafes.id = criteres_cafe.cafe_id';
+
+// Jour 1 = lundi … 7 = dimanche. Absence de ligne pour un jour = fermé ce
+// jour-là. Plusieurs lignes pour un même jour = service coupé.
+const HEURE = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
+const PLAGES_MAX = 28;
+
+/**
+ * Les horaires ne peuvent pas entrer dans la jointure principale : une adresse
+ * ouverte sept jours multiplierait sa ligne par sept, et la pagination
+ * compterait des plages au lieu d'adresses. On les lit en une seule requête
+ * pour toute la page, puis on les rattache.
+ */
+async function attacherHoraires(cafes) {
+    if (cafes.length === 0) return cafes;
+
+    const ids = cafes.map((cafe) => cafe.id);
+    const [plages] = await db.query(
+        'SELECT cafe_id, jour, ouverture, fermeture FROM cafe_horaires WHERE cafe_id IN (?) ORDER BY jour, ouverture',
+        [ids]
+    );
+
+    const parCafe = new Map(ids.map((id) => [id, []]));
+    for (const { cafe_id, jour, ouverture, fermeture } of plages) {
+        parCafe.get(cafe_id)?.push({ jour, ouverture, fermeture });
+    }
+
+    for (const cafe of cafes) {
+        cafe.horaires = parCafe.get(cafe.id) ?? [];
+    }
+
+    return cafes;
+}
+
+/**
+ * Valide le tableau d'horaires reçu. Renvoie { erreur } ou { plages }.
+ * `undefined` signifie « ne touche pas aux horaires » ; un tableau vide
+ * signifie « cette adresse n'a plus d'horaires », ce qui est différent.
+ */
+function validerHoraires(horaires) {
+    if (horaires === undefined) return { plages: undefined };
+    if (!Array.isArray(horaires)) return { erreur: 'horaires doit être un tableau de plages.' };
+    if (horaires.length > PLAGES_MAX) {
+        return { erreur: `horaires : ${PLAGES_MAX} plages au maximum, ${horaires.length} reçues.` };
+    }
+
+    const plages = [];
+    const vues = new Set();
+
+    for (const plage of horaires) {
+        const jour = Number(plage?.jour);
+        if (!Number.isInteger(jour) || jour < 1 || jour > 7) {
+            return { erreur: 'horaires : jour doit être un entier de 1 (lundi) à 7 (dimanche).' };
+        }
+
+        const ouverture = String(plage?.ouverture ?? '');
+        const fermeture = String(plage?.fermeture ?? '');
+
+        if (!HEURE.test(ouverture) || !HEURE.test(fermeture)) {
+            return { erreur: 'horaires : ouverture et fermeture doivent être au format HH:MM.' };
+        }
+
+        const debut = ouverture.length === 5 ? `${ouverture}:00` : ouverture;
+        const fin = fermeture.length === 5 ? `${fermeture}:00` : fermeture;
+
+        // Une plage qui commence et finit à la même heure ne veut rien dire, et
+        // se lirait comme « ouvert vingt-quatre heures » côté front.
+        if (debut === fin) {
+            return { erreur: 'horaires : une plage ne peut pas ouvrir et fermer à la même heure.' };
+        }
+
+        // L'index UNIQUE(cafe_id, jour, ouverture) rejetterait le doublon avec
+        // une erreur SQL illisible : autant le dire clairement ici.
+        const cle = `${jour}-${debut}`;
+        if (vues.has(cle)) {
+            return { erreur: `horaires : deux plages commencent à ${ouverture} le même jour.` };
+        }
+        vues.add(cle);
+
+        plages.push({ jour, ouverture: debut, fermeture: fin });
+    }
+
+    return { plages };
+}
+
+// Remplace en bloc plutôt que de différencier : une poignée de lignes par
+// adresse, et un remplacement ne peut pas laisser d'état intermédiaire.
+async function remplacerHoraires(cafeId, plages) {
+    await db.query('DELETE FROM cafe_horaires WHERE cafe_id = ?', [cafeId]);
+
+    if (plages.length === 0) return;
+
+    await db.query(
+        'INSERT INTO cafe_horaires (cafe_id, jour, ouverture, fermeture) VALUES ?',
+        [plages.map((p) => [cafeId, p.jour, p.ouverture, p.fermeture])]
+    );
+}
 
 const PRIX_VALIDES = ['1-10', '10-20', '20+'];
 
@@ -112,6 +207,8 @@ async function listerCafes(req, res, { where = '', valeurs = [], ordre = 'cafes.
             [...valeurs, limite, offset]
         );
 
+        await attacherHoraires(rows);
+
         return res.json(reponsePaginee(rows, { page, limite }, total));
     } catch (err) {
         return echec(res, err, contexte);
@@ -127,6 +224,8 @@ exports.getRandomCafe = async (req, res) => {
         if (rows.length === 0) {
             return res.status(404).json({ error: 'Aucune adresse dans le guide pour l\'instant.' });
         }
+
+        await attacherHoraires(rows);
 
         return res.json(rows[0]);
     } catch (err) {
@@ -195,7 +294,7 @@ exports.getCafeWithAmbiance = (req, res) => listerCafes(req, res, {
 });
 
 exports.searchCafes = (req, res) => {
-    const { arrondissement, specialite, wifi, prix, ambiance, prises, theme, nb_personnes, horaires, coup_de_coeur } = req.query;
+    const { arrondissement, specialite, wifi, prix, ambiance, prises, theme, nb_personnes, coup_de_coeur } = req.query;
 
     const conditions = [];
     const valeurs = [];
@@ -244,11 +343,6 @@ exports.searchCafes = (req, res) => {
         valeurs.push(nb_personnes);
     }
 
-    if (horaires) {
-        conditions.push('criteres_cafe.horaires = ?');
-        valeurs.push(horaires);
-    }
-
     if (coup_de_coeur === '1') {
         conditions.push('cafes.coup_de_coeur = 1');
     }
@@ -273,6 +367,8 @@ exports.getCafeById = async (req, res) => {
             return res.status(404).json({ error: 'Cette adresse n\'existe pas.' });
         }
 
+        await attacherHoraires(rows);
+
         return res.json(rows[0]);
     } catch (err) {
         return echec(res, err, 'lecture par id');
@@ -287,7 +383,6 @@ const SCHEMA_CAFE = {
     description: { max: 5000 },
     verdict: { max: 5000 },
     nb_personnes: { max: 50 },
-    horaires: { max: 100 },
     specialite: { max: 255 },
     prix: { valeurs: PRIX_VALIDES },
     theme: { max: 255 },
@@ -304,9 +399,17 @@ exports.createCafe = async (req, res) => {
         return res.status(400).json({ error: erreurs.join(' ') });
     }
 
+    // Les horaires sont un tableau, pas un champ scalaire : ils se valident à
+    // part, et avant la moindre écriture — sinon l'adresse serait créée puis
+    // rejetée sur ses horaires.
+    const { erreur: erreurHoraires, plages } = validerHoraires(req.body.horaires);
+    if (erreurHoraires) {
+        return res.status(400).json({ error: erreurHoraires });
+    }
+
     const {
         nom, arrondissement, adresse, image_url, description, verdict, coup_de_coeur,
-        nb_personnes, horaires, specialite, prix, wifi, prises, travailler, theme, ambiance
+        nb_personnes, specialite, prix, wifi, prises, travailler, theme, ambiance
     } = req.body;
 
     try {
@@ -327,12 +430,11 @@ exports.createCafe = async (req, res) => {
 
         await db.query(
             `INSERT INTO criteres_cafe
-             (cafe_id, nb_personnes, horaires, specialite, prix, wifi, prises, travailler, theme, ambiance)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             (cafe_id, nb_personnes, specialite, prix, wifi, prises, travailler, theme, ambiance)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 cafeId,
                 nb_personnes || null,
-                horaires || null,
                 specialite || null,
                 prix || null,
                 versBooleen(wifi),
@@ -343,10 +445,16 @@ exports.createCafe = async (req, res) => {
             ]
         );
 
+        if (plages) {
+            await remplacerHoraires(cafeId, plages);
+        }
+
         const [rows] = await db.query(
             `SELECT ${COLONNES_CAFE} ${JOINTURE} WHERE cafes.id = ?`,
             [cafeId]
         );
+
+        await attacherHoraires(rows);
 
         return res.status(201).json(rows[0]);
     } catch (err) {
@@ -370,13 +478,20 @@ function construireMaj(corps, champs) {
 }
 
 const CHAMPS_CAFE = ['nom', 'arrondissement', 'adresse', 'description', 'image_url', 'verdict'];
-const CHAMPS_CRITERES = ['nb_personnes', 'horaires', 'specialite', 'prix', 'theme', 'ambiance'];
+const CHAMPS_CRITERES = ['nb_personnes', 'specialite', 'prix', 'theme', 'ambiance'];
 const CHAMPS_BOOLEENS = ['wifi', 'prises', 'travailler'];
 
 exports.updateCafe = async (req, res) => {
     const erreurs = valider(req.body, { ...SCHEMA_CAFE, nom: { max: 255 }, arrondissement: { max: 50 } });
     if (erreurs.length > 0) {
         return res.status(400).json({ error: erreurs.join(' ') });
+    }
+
+    // Validés avant toute écriture : un PUT ne doit pas modifier la moitié
+    // d'une adresse puis refuser l'autre moitié.
+    const { erreur: erreurHoraires, plages } = validerHoraires(req.body.horaires);
+    if (erreurHoraires) {
+        return res.status(400).json({ error: erreurHoraires });
     }
 
     const cafeId = req.params.id;
@@ -425,10 +540,19 @@ exports.updateCafe = async (req, res) => {
             );
         }
 
+        // `undefined` laisse les horaires en place, un tableau vide les efface :
+        // « ne touche pas » et « cette adresse n'a plus d'horaires » sont deux
+        // intentions différentes et un PUT partiel doit pouvoir exprimer les deux.
+        if (plages !== undefined) {
+            await remplacerHoraires(cafeId, plages);
+        }
+
         const [rows] = await db.query(
             `SELECT ${COLONNES_CAFE} ${JOINTURE} WHERE cafes.id = ?`,
             [cafeId]
         );
+
+        await attacherHoraires(rows);
 
         return res.json(rows[0]);
     } catch (err) {

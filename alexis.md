@@ -10,6 +10,61 @@ fait, en absolu.
 
 ---
 
+## 2026-09-03 — Les horaires deviennent exploitables
+
+`cafe_horaires` existait depuis la migration 005 et **personne ne l'utilisait** :
+ni le back qui ne savait pas l'écrire, ni le front qui ne savait pas la lire.
+Une table créée pour une fonctionnalité dont le travail s'est arrêté juste
+après le schéma. Pendant ce temps `criteres_cafe.horaires` gardait du texte
+libre — `'8h-17h'` — dont on ne peut rien déduire.
+
+**Une information, une source.** La colonne texte est supprimée (migration 006).
+Deux endroits qui décrivent la même chose se contredisent toujours : on corrige
+l'un et on oublie l'autre. La chaîne affichée se dérive maintenant des plages.
+C'est le même motif que le nom de base écrit en dur dans les migrations — une
+vérité recopiée à deux endroits est une vérité qui va diverger.
+
+**Le piège qu'on ne voit qu'en le cherchant : la fermeture après minuit.** Le
+Comptoir Norvège ferme à 1h30, donc sa `fermeture` est *antérieure* à son
+`ouverture`. Le test évident — `ouverture <= maintenant < fermeture` — répond
+« fermé » à minuit et demi alors que la salle est pleine. Et à 00h30 un mardi,
+c'est la plage du **lundi** qui décide : il faut aussi regarder la veille.
+Le seed contient volontairement ce cas, plus un service coupé et deux jours de
+fermeture. Un jeu de test qui ne contient que des cas faciles ne teste rien —
+c'est aussi vrai des données de démonstration que des tests eux-mêmes.
+
+**Le fuseau ne se déduit pas, il se déclare.** « Ouvert maintenant » n'a de sens
+qu'à l'heure de Paris. Calculé sur le serveur, un hébergeur tourne en UTC :
+deux heures d'écart l'été, le site annonce fermé à 20h. Calculé sur le
+navigateur, c'est l'heure du lecteur : juste chez toi, faux pour quelqu'un qui
+consulte depuis l'étranger — et un guide de Paris se lit beaucoup en voyage.
+`Europe/Paris` est écrit en dur dans `utils/horaires.js`.
+
+**Calculé sur le front, pas sur le back.** L'état change à chaque minute : si
+l'API le renvoyait, chaque réponse serait périmée en soixante secondes et
+incachable. L'API envoie les plages, le front conclut — et se rafraîchit tout
+seul chaque minute, sans quoi une page laissée ouverte annoncerait « ouvert »
+toute la nuit.
+
+**Le rouge reste une exception.** La DA n'autorise le rouge que sur trois
+choses, dont l'état fermé. « Ouvert » s'écrit donc en noir : allumer le rouge
+sur ouvert le rendrait permanent, et une couleur allumée en permanence ne
+signale plus rien. Le tableau de la semaine reste neutre aussi — sept « fermé »
+en rouge feraient de la couleur d'exception une couleur de fond.
+
+**Un bouton qui décide si la fonctionnalité sera utilisée.** L'écran d'admin a
+un « copier le lundi sur toute la semaine ». Neuf adresses sur dix ouvrent aux
+mêmes heures tous les jours ; faire saisir sept fois la même ligne est le
+meilleur moyen que les horaires ne soient jamais remplis. Une fonctionnalité
+pénible à alimenter est une fonctionnalité vide.
+
+**Le réflexe :** une table sans code qui la lit n'est pas une fonctionnalité en
+attente, c'est une dette qui ment sur ce que le produit sait faire. Soit on la
+finit, soit on la retire. Et quand on la finit, chercher d'abord le cas qui
+casse l'implémentation naïve — ici minuit — parce qu'il existe presque toujours.
+
+---
+
 ## 2026-09-03 — Rendre le back hébergeable
 
 Le code métier était sain : validation partout, requêtes paramétrées, cookie

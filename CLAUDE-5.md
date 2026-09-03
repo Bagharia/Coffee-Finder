@@ -187,22 +187,28 @@ Contenu au 2026-09-03 : les cinq adresses du jeu de départ, complétées par
 l'API (coordonnées géocodées, verdict, photo, critères). Un compte admin,
 `admin@spotheplace.fr`. Aucun avis, aucun favori.
 
-**`cafe_horaires` est vide et morte.** La table existe depuis la migration 005
-mais aucun code ne l'écrit ni ne la lit : l'API ne gère que
-`criteres_cafe.horaires`, du texte libre (`'8h-17h'`). La fonctionnalité
-« ouvert maintenant » qui justifiait la table n'est pas implémentée. Soit on
-l'implémente, soit on retire la table — la laisser ainsi fait croire à une
-capacité qui n'existe pas.
+**Les horaires ont une source unique.** `cafe_horaires` porte les plages
+exploitables (jour 1 = lundi … 7 = dimanche, aucune plage = fermé, plusieurs
+plages = service coupé). La colonne texte `criteres_cafe.horaires` a été
+supprimée en migration 006 : deux sources pour une même information finissent
+toujours par se contredire. L'API renvoie `horaires` sous forme de tableau,
+`front/frontend/src/utils/horaires.js` calcule l'état courant.
 
-**Rien n'est rejouable.** L'état actuel de la base n'existe que localement :
-`db/seed.sql` ne contient toujours que les cinq adresses nues, sans coordonnées
-ni verdict. Un réimport efface le travail.
+Deux règles à ne pas défaire : une fermeture après minuit s'écrit `fermeture`
+antérieure à `ouverture` et déborde sur le lendemain — c'est la plage de la
+veille qui décide à 00h30 ; et le fuseau est forcé à `Europe/Paris`, jamais
+déduit du serveur ni du navigateur.
+
+**Rien n'est rejouable.** — plus vrai : `db/seed.sql` reflète l'état de
+démonstration complet, coordonnées, verdicts, photos et horaires compris. Les
+cinq établissements sont inventés, à de vraies adresses parisiennes : le dépôt
+est public, on n'y attribue pas d'avis fabriqués à des commerces existants.
 
 ### À ajouter
 
-**Les horaires exploitables**, ou le retrait de `cafe_horaires` — voir ci-dessus.
-
-**Un seed rejouable** reflétant l'état de démonstration actuel.
+**Les fermetures exceptionnelles** — congés d'août, jours fériés. Une deuxième
+table et un deuxième écran d'admin : à faire quand les horaires hebdomadaires
+auront servi, pas avant.
 
 ---
 
@@ -220,14 +226,12 @@ ni verdict. Un réimport efface le travail.
 
 **Fait.** Refonte du front (tokens, `CafeCard`, `Navbar`/`Footer`, `Home`,
 `Map`, fiche adresse, pages de compte) ; les sept points de sécurité ;
-la préparation du back à l'hébergement — détail et raisonnement dans
-`alexis.md`, entrée du 2026-09-03.
+la préparation du back à l'hébergement ; les horaires exploitables et
+« ouvert maintenant » — détail et raisonnement dans `alexis.md`.
 
 **Reste.**
 
-1. Amorcer `schema_migrations` sur la base locale :
-   `npm run db:migrate -- --baseline`. Sans ça, le runner croit tout à faire et
-   rejouerait `002` et `004`, qui ne sont pas rejouables.
-2. Trancher sur `cafe_horaires` : l'implémenter ou la retirer.
-3. Un seed rejouable pour l'état de démonstration.
-4. Le déploiement lui-même, en suivant `back/ADMIN_GUIDE.md`.
+1. Wendy saisit de vraies adresses. Le reste attend ça.
+2. Les fermetures exceptionnelles, si le besoin se confirme.
+3. Le déploiement, en suivant `back/ADMIN_GUIDE.md` — pas avant que le guide
+   contienne assez d'adresses réelles pour valoir d'être montré.

@@ -83,7 +83,6 @@ curl -b session.txt -X POST http://localhost:3000/api/cafes \
     "verdict": "Le meilleur matcha du quartier, et la seule table où on tient à deux avec un ordinateur.",
     "coup_de_coeur": 1,
     "nb_personnes": "20-50",
-    "horaires": "8h-20h",
     "specialite": "Café,Matcha",
     "prix": "10-20",
     "wifi": 1,
@@ -97,6 +96,27 @@ curl -b session.txt -X POST http://localhost:3000/api/cafes \
 `nom` et `arrondissement` sont obligatoires. `prix` vaut `1-10`, `10-20` ou `20+`.
 L'adresse est géocodée automatiquement via Nominatim : si le géocodage échoue,
 la fiche est créée quand même mais n'apparaît pas sur la carte.
+
+### Les horaires
+
+`horaires` est un tableau de plages, pas une chaîne. Jour 1 = lundi … 7 =
+dimanche ; aucune plage pour un jour = fermé ce jour-là ; plusieurs plages pour
+un même jour = service coupé.
+
+```json
+"horaires": [
+  { "jour": 1, "ouverture": "09:00", "fermeture": "15:00" },
+  { "jour": 1, "ouverture": "18:00", "fermeture": "23:00" },
+  { "jour": 2, "ouverture": "08:00", "fermeture": "01:30" }
+]
+```
+
+La dernière ligne ferme après minuit : `fermeture` antérieure à `ouverture` se
+lit comme un débordement sur le lendemain, et c'est ainsi que « ouvert
+maintenant » la traite.
+
+Sur un `PUT`, omettre `horaires` laisse les plages en place ; envoyer un
+tableau vide les efface. Ce sont deux intentions différentes.
 
 ## Modifier, supprimer
 

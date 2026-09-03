@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { favorisAPI } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import Coeur from "../icons/Coeur";
+import { estOuvert } from "../utils/horaires";
 
 /**
  * Les prix sont stockés en intervalles ('1-10', '10-20', '20+'). La DA impose
@@ -107,6 +108,9 @@ export default function CafeCard({ cafe, initialFavorite, prioritaire = false })
           <div className="text-meta text-gris">
             {cafe.prix && <p>{PRIX[cafe.prix] ?? cafe.prix}</p>}
             {estNouveau(cafe.created_at) && <p>nouveau</p>}
+            {/* Seul « fermé » s'affiche : signaler « ouvert » l'allumerait sur
+                presque toutes les cartes et ne signalerait plus rien. */}
+            {estOuvert(cafe.horaires) === false && <p className="text-rouge">fermé</p>}
           </div>
 
           {/* Au-dessus du lien de carte, sinon il l'intercepterait. */}

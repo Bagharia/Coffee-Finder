@@ -2,15 +2,30 @@
 
 ## Préparer la base
 
-Depuis `back/`, migrations dans l'ordre puis, si la base est vide, le jeu de départ :
+Les migrations ne s'appliquent plus à la main. Depuis `back/`, une seule commande :
 
 ```bash
-mysql -u root -p < db/001_init.sql
-mysql -u root -p < db/002_colonnes_cafes.sql
-mysql -u root -p < db/003_avis_favoris.sql
-mysql -u root -p < db/004_verdict.sql
-mysql -u root -p < db/005_horaires.sql
-mysql -u root -p < db/seed.sql   # facultatif, jamais en production
+npm run db:migrate
+```
+
+Elle applique, dans l'ordre, les fichiers `db/0XX_*.sql` qui manquent, et note
+chacun dans la table `schema_migrations`. Relancée, elle ne fait rien. La base
+visée est celle du `.env` — les fichiers SQL ne contiennent plus de nom de base
+en dur, sans quoi ils seraient inapplicables chez un hébergeur.
+
+```bash
+npm run db:migrate -- --etat       # ce qui est appliqué, ce qui attend
+npm run db:migrate -- --baseline   # tout marquer appliqué sans exécuter
+```
+
+`--baseline` sert une fois, sur une base montée à la main avant l'arrivée du
+runner : elle a le bon schéma mais pas la table de suivi. L'utiliser sur une
+base réellement vide la laisserait vide en la déclarant à jour.
+
+Le jeu de données de démonstration reste séparé, et n'est pas une migration :
+
+```bash
+mysql -u <user> -p <base> < db/seed.sql   # jamais en production
 ```
 
 ## Créer un compte administrateur
@@ -106,3 +121,61 @@ les avis et les favoris de l'adresse (cascade).
 
 La liste complète des routes et le format des réponses sont dans le README à la
 racine du dépôt.
+
+---
+
+## Héberger l'API
+
+### Variables à renseigner
+
+Au-delà de celles du `.env.example`, quatre méritent une décision consciente.
+
+| Variable | En production |
+|---|---|
+| `NODE_ENV` | `production` — c'est elle qui pose le cookie de session en `secure` |
+| `TRUST_PROXY` | **obligatoire**, le serveur refuse de démarrer sans. `1` derrière un reverse proxy (tous les PaaS), `0` si l'API est exposée directement |
+| `DB_SSL` | `1` chez tout hébergeur de base managée, qui refuse le clair |
+| `NOMINATIM_CONTACT` | une adresse e-mail ou l'URL du site — sans elle, le géocodage depuis une IP de datacenter finit en 403 |
+
+`TRUST_PROXY` n'a pas de défaut sûr, d'où le refus de démarrer : à `0` derrière
+un proxy, `req.ip` vaut l'adresse du proxy et le limiteur de débit range tous
+les visiteurs dans le même compteur — dix échecs de connexion, venus de
+n'importe qui, verrouillent le site pour tout le monde pendant quinze minutes.
+À `1` sans proxy devant, n'importe qui usurpe son adresse via un en-tête
+`X-Forwarded-For` forgé et contourne la limite.
+
+### Où servir le front
+
+Le back ne sert que du JSON : il n'y a pas de `express.static`, le front est
+déployé séparément. Deux montages possibles, et le choix décide du cookie.
+
+**Même domaine** (`site.fr` pour le front, `site.fr/api` via un reverse proxy,
+ou `api.site.fr` en sous-domaine) : garder `VITE_API_URL=/api` et
+`COOKIE_SAMESITE=lax`. C'est le montage le plus simple et le plus sûr.
+
+**Deux domaines distincts** (front sur Vercel, API ailleurs) : mettre l'URL
+complète de l'API dans `VITE_API_URL`, `FRONTEND_URL` sur l'URL exacte du
+front, et `COOKIE_SAMESITE=none`. Ce dernier impose HTTPS **des deux côtés** :
+sans quoi le navigateur jette le cookie de session sans le moindre message, et
+la connexion échoue sans erreur visible.
+
+### Sonde de disponibilité
+
+Pointer le healthcheck de l'hébergeur sur `GET /api/health`. Elle interroge la
+base : `200 {"status":"ok"}` si tout répond, `503 {"status":"degrade"}` si la
+base est injoignable. En production, une base injoignable au démarrage arrête
+le processus en code 1 plutôt que de laisser l'API se déclarer disponible.
+
+### Redéploiement
+
+Le serveur intercepte `SIGTERM` : il cesse d'accepter des connexions, laisse
+finir les requêtes en vol, ferme le pool MySQL, puis sort. Au-delà de dix
+secondes, il se coupe de force. Rien à configurer, mais laisser à l'hébergeur
+au moins quinze secondes de délai d'arrêt s'il permet de le régler.
+
+### Limites connues
+
+Le limiteur de débit compte dans la mémoire du processus (`middleware/rateLimit.js`).
+Deux instances derrière un répartiteur, et chacune autorise le quota complet.
+Tant que l'API tourne en un seul exemplaire, c'est sans effet ; passer à
+plusieurs impose de sortir les compteurs en base ou dans un cache partagé.

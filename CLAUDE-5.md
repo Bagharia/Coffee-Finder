@@ -1,0 +1,233 @@
+# CLAUDE.md — SpotThePlace
+
+Guide des cafés, salons de thé et bubble tea de Paris. Une seule personne écrit
+les avis ; le site sert à les lire chez soi et à trouver une adresse dans la rue.
+
+Ce fichier est la source de vérité pour tout travail sur ce dépôt. La direction
+artistique complète est dans `DA.md` — la lire avant de toucher au front. Le
+raisonnement derrière les décisions passées est dans `alexis.md`, en journal
+daté : le consulter avant de défaire quelque chose qui semble inutile.
+
+---
+
+## Stack
+
+| | |
+|---|---|
+| Front | React 19, Vite 7, Tailwind 4 (`@tailwindcss/vite`), React Router 7, Leaflet + react-leaflet |
+| Back | Node, Express 5, MySQL via `mysql2/promise`, JWT, bcryptjs |
+| Arbo | `front/frontend/` et `back/`, deux `package.json` séparés |
+
+```bash
+cd back && npm run dev            # nodemon, port 3000
+cd front/frontend && npm run dev  # vite, port 5173
+```
+
+Le front parle au back via `VITE_API_URL`. Aucune URL d'API en dur dans un
+composant.
+
+---
+
+## Règles de travail
+
+- **Français partout** : interface, messages d'erreur, commentaires, commits.
+- Ne jamais lancer de migration ni de `DROP` sans me demander d'abord.
+- Ne pas installer de dépendance sans me demander. La stack ci-dessus suffit
+  pour presque tout ; une lib de plus, c'est une dette de plus.
+- Quand un composant dépasse 200 lignes, le découper avant d'y ajouter quoi que
+  ce soit. Aucun ne dépasse aujourd'hui — `Admin.jsx` (171) est le plus long.
+- Modifier un fichier existant plutôt que d'en créer un nouveau à côté.
+- **Toute modification importante s'inscrit dans `alexis.md`**, en expliquant
+  pourquoi l'état précédent posait problème, pas seulement ce qui a changé.
+  Est importante toute modification qui touche la sécurité, le schéma de la
+  base, la configuration de déploiement, ou qui revient sur une décision déjà
+  prise. `git log` dit ce qui a changé ; `alexis.md` dit pourquoi c'était faux.
+
+---
+
+## Front — règles de code
+
+### Tokens
+
+Toutes les valeurs visuelles passent par le `@theme` de `src/index.css`. Les
+classes disponibles : `bg-plaque`, `bg-papier`, `text-encre`, `text-gris`,
+`border-trait`, `text-rouge`, `font-voix`, `text-titre`, `text-voix`,
+`text-meta`, etc.
+
+Interdit : les valeurs arbitraires Tailwind (`bg-[rgba(90,122,74,0.12)]`,
+`text-[#4A6B40]`), les couleurs en dur dans le JSX, la syntaxe `bg-(--var)`
+héritée de l'ancien fichier. Si une couleur n'est pas dans le thème, soit elle
+n'a pas lieu d'être, soit on l'ajoute au thème — jamais en local.
+
+### Composants
+
+- `.plaque` est le seul geste visuel fort. Un seul par zone d'écran.
+- `.voix` est réservé aux avis de Wendy. Jamais pour du texte d'interface.
+- Aucun emoji dans le rendu. Pictogramme nécessaire = SVG monochrome dans
+  `src/icons/`. Les emoji actuels (`💼` dans `WorkScore`, `☕🍵🧋🫖` dans
+  `Home`) sont à supprimer.
+- Aucune URL Unsplash en dur. L'image de repli est la classe `.image-repli`.
+- Pas de `<div>` cliquable : un lien est un `<a>`/`<Link>`, une action est un
+  `<button>`. Ça conditionne le clavier et les lecteurs d'écran.
+
+### États obligatoires
+
+Tout écran qui charge des données a **quatre** états écrits, pas un :
+chargement, vide, erreur, contenu. L'état vide est une invitation à agir
+(« aucune adresse dans le 19e pour l'instant. proposer la vôtre »), jamais
+« aucun résultat ». L'erreur dit ce qui s'est passé et quoi faire, sans
+« oups » ni excuse.
+
+### Accessibilité — plancher non négociable
+
+- Contraste AA sur tout texte. Le blanc sur `--color-plaque` passe, le gris sur
+  papier doit être vérifié avant usage sur du petit corps.
+- Focus visible partout (déjà dans `index.css`, ne pas le désactiver).
+- Cibles tactiles à 44px minimum : le site s'utilise debout, en marchant.
+- `prefers-reduced-motion` respecté.
+- Toute image porte un `alt` décrivant l'adresse, pas « photo ».
+
+### Performance
+
+Cible : première image utile sous 2 s en 4G moyenne, c'est le contexte réel
+d'usage.
+
+- Images en `loading="lazy"` sauf la première visible, `width`/`height`
+  toujours renseignés pour éviter les sauts de mise en page.
+- Leaflet et la page carte en `React.lazy` : la carte ne doit pas peser sur le
+  chargement du guide.
+- Pas de dépendance d'animation. Le seul mouvement du site est la feuille de la
+  carte, en CSS.
+
+### Carte
+
+- Marqueurs en `L.divIcon` portant la classe `.plaque` et le nom de l'adresse.
+  Pas d'épingle générique : le nom doit être lisible directement sur la carte.
+- Une seule adresse sélectionnée à la fois, en `.plaque-active`.
+- Regrouper les marqueurs au-delà de ~40 adresses visibles, sinon le rendu
+  s'effondre sur mobile.
+- Charger les adresses par cadre visible quand la base dépassera quelques
+  centaines de lignes, pas la table entière.
+
+---
+
+## Back — règles de code
+
+- Les contrôleurs répondent avec `res.json(...)`. Interdit :
+  `res.setHeader` + `JSON.stringify(rows, null, 2)` — c'est du poids réseau
+  inutile sur chaque réponse.
+- **Jamais de `SELECT *` sur une jointure.** `cafes` et `criteres_cafe` ont
+  toutes les deux une colonne `id` : mysql2 écrase la première par la seconde,
+  donc l'`id` renvoyé au front est celui des critères, pas celui du café.
+  Lister les colonnes et aliaser (`cafes.id AS id`, `criteres_cafe.id AS
+  critere_id`).
+- Requêtes toujours paramétrées (`?`). C'est déjà le cas, ça doit le rester.
+- Une ressource absente répond 404 depuis le corps de la fonction, pas depuis le
+  `catch` — un `catch` ne sait pas distinguer « absent » de « base en panne ».
+- Une ressource unique répond un objet, pas un tableau d'un élément.
+- Un `catch` journalise l'erreur complète côté serveur et renvoie un message
+  générique au client. Jamais le message SQL brut.
+- Pagination obligatoire sur toute route de liste (`?page`, `?limite`, défaut
+  20, plafond appliqué dans `utils/validation.js`).
+- Tout appel réseau sortant porte un délai maximal (`AbortSignal.timeout`).
+  Express n'en impose aucun : sans lui, un service lent suspend la requête
+  indéfiniment. Voir `geocodeAdresse` dans `cafeController.js`.
+- Un `catch` qui renvoie une valeur neutre trace toujours la raison. Un échec
+  silencieux se paie plus tard, et bien plus cher.
+
+### Sécurité — acquis, à ne pas régresser
+
+Les sept corrections listées ici ont toutes été faites. Elles sont conservées
+sous forme de règles : ce sont des propriétés à préserver, pas des tâches.
+
+1. `register` force `role: 'user'`. Le champ `role` du corps de requête est
+   ignoré, sinon n'importe qui se fabrique un admin depuis le formulaire
+   d'inscription. La promotion se fait en base, à la main.
+2. Aucun repli pour `JWT_SECRET`. Un secret par défaut écrit dans le code est
+   un secret public. Le serveur refuse de démarrer sans la variable.
+3. Aucun `.env` ni `node_modules/` suivi par git. Le `.env` qui reste dans
+   l'historique ne contenait que des valeurs d'exemple — vérifié le 2026-09-03,
+   rien de réel n'a fuité.
+4. Limiteur de débit sur `/login`, `/register`, `/change-password` et les
+   écritures d'avis. Toute route qui compare un secret ou écrit en base en a
+   besoin, pas seulement `/login`.
+5. Validation d'entrée sur toutes les routes d'écriture, via `utils/validation.js`.
+6. Gestionnaire d'erreurs global, 404 global et en-têtes de sécurité écrits à la
+   main dans `middleware/securityHeaders.js` — pas de `helmet`, la stack suffit.
+7. `FRONTEND_URL` obligatoire en production : sans elle, l'origine CORS se
+   replierait silencieusement sur `localhost:5173`.
+
+### Jeton de session
+
+Le jeton vit dans un cookie `httpOnly`, plus dans le stockage du navigateur :
+aucun script de la page ne peut le lire, donc une injection ne suffit plus à
+voler une session. L'en-tête `Authorization: Bearer` reste accepté pour les
+scripts en ligne de commande, qui n'ont pas de navigateur à protéger.
+
+Ça ne dispense de rien côté front : aucun `dangerouslySetInnerHTML`, aucun rendu
+de HTML venant de la base, aucune dépendance ajoutée sans raison.
+
+La portée du cookie dépend du montage choisi à l'hébergement — voir
+`back/ADMIN_GUIDE.md`, section « Héberger l'API ».
+
+---
+
+## Données
+
+### État actuel
+
+Schéma en cinq migrations numérotées dans `back/db/`, appliquées par
+`npm run db:migrate` et suivies dans la table `schema_migrations`. Les fichiers
+SQL ne nomment plus la base : elle vient de la connexion, sinon ils seraient
+inapplicables chez un hébergeur.
+
+Tables : `cafes`, `criteres_cafe`, `users`, `avis`, `favoris`, `cafe_horaires`.
+
+Contenu au 2026-09-03 : les cinq adresses du jeu de départ, complétées par
+l'API (coordonnées géocodées, verdict, photo, critères). Un compte admin,
+`admin@spotheplace.fr`. Aucun avis, aucun favori.
+
+**`cafe_horaires` est vide et morte.** La table existe depuis la migration 005
+mais aucun code ne l'écrit ni ne la lit : l'API ne gère que
+`criteres_cafe.horaires`, du texte libre (`'8h-17h'`). La fonctionnalité
+« ouvert maintenant » qui justifiait la table n'est pas implémentée. Soit on
+l'implémente, soit on retire la table — la laisser ainsi fait croire à une
+capacité qui n'existe pas.
+
+**Rien n'est rejouable.** L'état actuel de la base n'existe que localement :
+`db/seed.sql` ne contient toujours que les cinq adresses nues, sans coordonnées
+ni verdict. Un réimport efface le travail.
+
+### À ajouter
+
+**Les horaires exploitables**, ou le retrait de `cafe_horaires` — voir ci-dessus.
+
+**Un seed rejouable** reflétant l'état de démonstration actuel.
+
+---
+
+## Git
+
+- Le dépôt est public. Rien de secret ne rentre, jamais, même temporairement —
+  l'historique garde tout.
+- Un commit par intention, message en français à l'impératif
+  (`corrige le rôle forcé à l'inscription`).
+- `node_modules/` ne se commite pas.
+
+---
+
+## Chantier en cours
+
+**Fait.** Refonte du front (tokens, `CafeCard`, `Navbar`/`Footer`, `Home`,
+`Map`, fiche adresse, pages de compte) ; les sept points de sécurité ;
+la préparation du back à l'hébergement — détail et raisonnement dans
+`alexis.md`, entrée du 2026-09-03.
+
+**Reste.**
+
+1. Amorcer `schema_migrations` sur la base locale :
+   `npm run db:migrate -- --baseline`. Sans ça, le runner croit tout à faire et
+   rejouerait `002` et `004`, qui ne sont pas rejouables.
+2. Trancher sur `cafe_horaires` : l'implémenter ou la retirer.
+3. Un seed rejouable pour l'état de démonstration.
+4. Le déploiement lui-même, en suivant `back/ADMIN_GUIDE.md`.

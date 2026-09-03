@@ -14,7 +14,8 @@ exports.addFavori = async (req, res) => {
     const cafeId = req.params.cafeId;
 
     try {
-        const [cafe] = await db.query('SELECT id FROM cafes WHERE id = ?', [cafeId]);
+        // Une adresse en corbeille n'existe plus pour les visiteurs.
+        const [cafe] = await db.query('SELECT id FROM cafes WHERE id = ? AND supprime_le IS NULL', [cafeId]);
         if (cafe.length === 0) {
             return res.status(404).json({ error: 'Cette adresse n\'existe pas.' });
         }
@@ -67,7 +68,10 @@ exports.getUserFavoris = async (req, res) => {
 
     try {
         const [[{ total }]] = await db.query(
-            'SELECT COUNT(*) AS total FROM favoris WHERE user_id = ?',
+            `SELECT COUNT(*) AS total
+             FROM favoris
+             JOIN cafes ON favoris.cafe_id = cafes.id
+             WHERE favoris.user_id = ? AND cafes.supprime_le IS NULL`,
             [userId]
         );
 
@@ -77,7 +81,7 @@ exports.getUserFavoris = async (req, res) => {
              FROM favoris
              JOIN cafes ON favoris.cafe_id = cafes.id
              JOIN criteres_cafe ON cafes.id = criteres_cafe.cafe_id
-             WHERE favoris.user_id = ?
+             WHERE favoris.user_id = ? AND cafes.supprime_le IS NULL
              ORDER BY favoris.created_at DESC
              LIMIT ? OFFSET ?`,
             [userId, limite, offset]

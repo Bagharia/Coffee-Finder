@@ -4,6 +4,7 @@ const cors = require('cors');
 const db = require('./config/db');
 const { securityHeaders } = require('./middleware/securityHeaders');
 const journal = require('./utils/journal');
+const { DOSSIER: DOSSIER_UPLOADS } = require('./utils/televersement');
 
 const app = express();
 
@@ -46,6 +47,23 @@ db.query('SELECT 1')
 
     journal.erreur('Vérifier : MySQL/MariaDB lancé, base créée, migrations appliquées (back/db), .env correct.');
   });
+
+// Images téléversées. Sous /api pour que le proxy Vite les relaie en
+// développement et qu'elles partagent l'origine du front en production.
+// `dotfiles: 'deny'` et l'absence d'index empêchent de lister le dossier ou
+// d'aller chercher autre chose que les fichiers qu'on y a écrits.
+app.use('/api/uploads', express.static(DOSSIER_UPLOADS, {
+    index: false,
+    dotfiles: 'deny',
+    maxAge: '7d',
+    setHeaders: (res) => {
+        // Le nom des fichiers est tiré au hasard et ne change jamais : une
+        // image peut être gardée longtemps. Mais elle reste servie comme une
+        // pièce jointe inerte, jamais interprétée par le navigateur.
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Content-Disposition', 'inline');
+    }
+}));
 
 app.use('/api/cafes', require('./routes/cafes'));
 app.use('/api/users', require('./routes/users'));

@@ -3,8 +3,23 @@ const journal = require('../utils/journal');
 const { COLONNES_CAFE, JOINTURE, attacherHoraires, remplacerHoraires } = require('../utils/cafes');
 const { validerHoraires } = require('../utils/horaires');
 const { geocodeAdresse } = require('../utils/geocodage');
+const { normaliserAdresse, echapperLike } = require('../utils/adresse');
+const {
+    recevoirImage, enregistrerImage, supprimerImageLocale, TAILLE_MAX, TYPES_ACCEPTES
+} = require('../utils/televersement');
 
 const PRIX_VALIDES = ['1-10', '10-20', '20+'];
+
+// Les adresses en corbeille sont invisibles partout, sauf là où on les demande
+// explicitement. Le filtre est posé dans `listerCafes` et non recopié dans
+// chaque route : une route ajoutée demain hérite du bon comportement sans que
+// personne n'ait à y penser — l'oubli inverse exposerait des fiches supprimées.
+const VIVANTES = 'cafes.supprime_le IS NULL';
+const EN_CORBEILLE = 'cafes.supprime_le IS NOT NULL';
+
+// Longueur maximale d'une recherche libre. Au-delà, ce n'est plus une
+// recherche : c'est une tentative de faire travailler la base pour rien.
+const RECHERCHE_MAX = 100;
 
 // Le client n'a pas à connaître la structure de la base : le détail va dans le
 // journal serveur, le client reçoit une phrase.
@@ -20,9 +35,10 @@ const { lirePagination, reponsePaginee, valider, versBooleen } = require('../uti
  * Exécute une requête de liste paginée sur la jointure cafes + critères.
  * Toute route qui renvoie plusieurs adresses passe par ici.
  */
-async function listerCafes(req, res, { where = '', valeurs = [], ordre = 'cafes.nom ASC', contexte }) {
+async function listerCafes(req, res, { where = '', valeurs = [], ordre = 'cafes.nom ASC', contexte, portee = VIVANTES }) {
     const { page, limite, offset } = lirePagination(req.query);
-    const clause = where ? `WHERE ${where}` : '';
+    const conditions = [portee, where].filter(Boolean);
+    const clause = `WHERE ${conditions.join(' AND ')}`;
 
     try {
         const [[{ total }]] = await db.query(
@@ -46,7 +62,7 @@ async function listerCafes(req, res, { where = '', valeurs = [], ordre = 'cafes.
 exports.getRandomCafe = async (req, res) => {
     try {
         const [rows] = await db.query(
-            `SELECT ${COLONNES_CAFE} ${JOINTURE} ORDER BY RAND() LIMIT 1`
+            `SELECT ${COLONNES_CAFE} ${JOINTURE} WHERE ${VIVANTES} ORDER BY RAND() LIMIT 1`
         );
 
         if (rows.length === 0) {
@@ -122,10 +138,30 @@ exports.getCafeWithAmbiance = (req, res) => listerCafes(req, res, {
 });
 
 exports.searchCafes = (req, res) => {
-    const { arrondissement, specialite, wifi, prix, ambiance, prises, theme, nb_personnes, coup_de_coeur } = req.query;
+    const { q, arrondissement, specialite, wifi, prix, ambiance, prises, theme, nb_personnes, coup_de_coeur } = req.query;
 
     const conditions = [];
     const valeurs = [];
+
+    // Recherche libre. Un LIKE suffit à l'échelle d'un guide de quartier ; le
+    // jour où la table compte des milliers de lignes, il faudra un index
+    // FULLTEXT et MATCH … AGAINST, qui classe par pertinence au lieu de
+    // renvoyer tout ce qui contient la chaîne.
+    if (q !== undefined) {
+        const terme = String(q).trim();
+
+        if (terme.length === 0) {
+            return res.status(400).json({ error: 'La recherche ne peut pas être vide.' });
+        }
+
+        if (terme.length > RECHERCHE_MAX) {
+            return res.status(400).json({ error: `La recherche ne peut pas dépasser ${RECHERCHE_MAX} caractères.` });
+        }
+
+        const motif = `%${echapperLike(terme)}%`;
+        conditions.push('(cafes.nom LIKE ? OR cafes.adresse LIKE ? OR cafes.description LIKE ? OR cafes.verdict LIKE ?)');
+        valeurs.push(motif, motif, motif, motif);
+    }
 
     if (arrondissement) {
         conditions.push('cafes.arrondissement = ?');
@@ -185,7 +221,7 @@ exports.searchCafes = (req, res) => {
 exports.getCafeById = async (req, res) => {
     try {
         const [rows] = await db.query(
-            `SELECT ${COLONNES_CAFE} ${JOINTURE} WHERE cafes.id = ?`,
+            `SELECT ${COLONNES_CAFE} ${JOINTURE} WHERE cafes.id = ? AND ${VIVANTES}`,
             [req.params.id]
         );
 
@@ -202,6 +238,33 @@ exports.getCafeById = async (req, res) => {
         return echec(res, err, 'lecture par id');
     }
 };
+
+/**
+ * Cherche une adresse déjà enregistrée au même endroit.
+ *
+ * La comparaison se fait sur la forme normalisée : « 12 Rue de Bretagne,
+ * 75003 Paris » et « 12 rue de bretagne 75003 paris » désignent le même lieu,
+ * et une contrainte UNIQUE en base ne les distinguerait pas.
+ *
+ * Parcourt les adresses en mémoire plutôt que de les comparer en SQL : à
+ * l'échelle d'un guide de quartier c'est négligeable, et surtout ça évite de
+ * stocker une deuxième version de l'adresse qui divergerait de la première.
+ * Si la table devient grande, c'est cette fonction qu'il faudra revoir.
+ *
+ * @returns {object|null} la fiche en conflit, ou null
+ */
+async function adresseDejaPrise(adresse, exclureId = null) {
+    const cible = normaliserAdresse(adresse);
+    if (!cible) return null;
+
+    const [rows] = await db.query(
+        `SELECT id, nom, adresse FROM cafes WHERE adresse IS NOT NULL AND ${VIVANTES}`
+    );
+
+    return rows.find((cafe) =>
+        cafe.id !== Number(exclureId) && normaliserAdresse(cafe.adresse) === cible
+    ) ?? null;
+}
 
 const SCHEMA_CAFE = {
     nom: { requis: true, min: 1, max: 255 },
@@ -241,6 +304,14 @@ exports.createCafe = async (req, res) => {
     } = req.body;
 
     try {
+        const conflit = await adresseDejaPrise(adresse);
+        if (conflit) {
+            return res.status(409).json({
+                error: `« ${conflit.nom} » occupe déjà cette adresse.`,
+                cafeId: conflit.id
+            });
+        }
+
         const coords = await geocodeAdresse(adresse);
 
         const [cafeResult] = await db.query(
@@ -337,6 +408,16 @@ exports.updateCafe = async (req, res) => {
             majCafe.valeurs.push(versBooleen(req.body.coup_de_coeur));
         }
 
+        if (req.body.adresse) {
+            const conflit = await adresseDejaPrise(req.body.adresse, cafeId);
+            if (conflit) {
+                return res.status(409).json({
+                    error: `« ${conflit.nom} » occupe déjà cette adresse.`,
+                    cafeId: conflit.id
+                });
+            }
+        }
+
         // Une adresse qui change déplace le marqueur : on regéocode.
         if (req.body.adresse) {
             const coords = await geocodeAdresse(req.body.adresse);
@@ -388,20 +469,173 @@ exports.updateCafe = async (req, res) => {
     }
 };
 
+// GET /api/cafes/corbeille — les adresses supprimées, pour les rétablir.
+exports.getCorbeille = (req, res) => listerCafes(req, res, {
+    portee: EN_CORBEILLE,
+    ordre: 'cafes.supprime_le DESC',
+    contexte: 'lecture de la corbeille'
+});
+
+/**
+ * DELETE /api/cafes/:id — met l'adresse à la corbeille.
+ *
+ * `?definitif=1` supprime pour de bon, en emportant les critères, les avis et
+ * les favoris en cascade. Ce n'est pas le défaut : une suppression ordinaire
+ * ne doit pas pouvoir détruire les avis que des visiteurs ont écrits.
+ */
 exports.deleteCafe = async (req, res) => {
     const cafeId = req.params.id;
+    const definitif = req.query.definitif === '1';
 
     try {
-        const [existe] = await db.query('SELECT id FROM cafes WHERE id = ?', [cafeId]);
+        const [existe] = await db.query('SELECT id, nom, image_url, supprime_le FROM cafes WHERE id = ?', [cafeId]);
         if (existe.length === 0) {
             return res.status(404).json({ error: 'Cette adresse n\'existe pas.' });
         }
 
-        // criteres_cafe, avis et favoris partent en cascade (contraintes FK).
-        await db.query('DELETE FROM cafes WHERE id = ?', [cafeId]);
+        const cafe = existe[0];
 
-        return res.json({ message: 'Adresse supprimée.', id: Number(cafeId) });
+        if (definitif) {
+            // Le fichier part avec la fiche : sans ça, l'image resterait sur le
+            // disque sans que plus rien ne la référence.
+            await supprimerImageLocale(cafe.image_url);
+
+            await db.query('DELETE FROM cafes WHERE id = ?', [cafeId]);
+            journal.info(`[cafes] suppression définitive de « ${cafe.nom} » (id ${cafeId})`);
+
+            return res.json({ message: 'Adresse supprimée définitivement.', id: Number(cafeId) });
+        }
+
+        if (cafe.supprime_le) {
+            return res.status(409).json({ error: 'Cette adresse est déjà à la corbeille.' });
+        }
+
+        await db.query('UPDATE cafes SET supprime_le = NOW() WHERE id = ?', [cafeId]);
+
+        return res.json({
+            message: 'Adresse mise à la corbeille. Elle peut être rétablie.',
+            id: Number(cafeId)
+        });
     } catch (err) {
         return echec(res, err, 'suppression', 'Erreur lors de la suppression de l\'adresse');
+    }
+};
+
+// POST /api/cafes/:id/restaurer — ressort une adresse de la corbeille.
+exports.restaurerCafe = async (req, res) => {
+    const cafeId = req.params.id;
+
+    try {
+        const [rows] = await db.query('SELECT id, nom, adresse, supprime_le FROM cafes WHERE id = ?', [cafeId]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Cette adresse n\'existe pas.' });
+        }
+
+        if (!rows[0].supprime_le) {
+            return res.status(409).json({ error: 'Cette adresse n\'est pas à la corbeille.' });
+        }
+
+        // Une autre fiche a pu prendre l'adresse pendant que celle-ci dormait :
+        // la rétablir en silence créerait le doublon qu'on cherche à éviter.
+        const conflit = await adresseDejaPrise(rows[0].adresse, cafeId);
+        if (conflit) {
+            return res.status(409).json({
+                error: `Impossible de rétablir : « ${conflit.nom} » occupe désormais cette adresse.`,
+                cafeId: conflit.id
+            });
+        }
+
+        await db.query('UPDATE cafes SET supprime_le = NULL WHERE id = ?', [cafeId]);
+
+        const [fiche] = await db.query(
+            `SELECT ${COLONNES_CAFE} ${JOINTURE} WHERE cafes.id = ?`,
+            [cafeId]
+        );
+
+        await attacherHoraires(fiche);
+
+        return res.json(fiche[0]);
+    } catch (err) {
+        return echec(res, err, 'restauration', 'Erreur lors du rétablissement de l\'adresse');
+    }
+};
+
+/**
+ * POST /api/cafes/:id/image — remplace la photo d'une adresse.
+ *
+ * Multer est appelé à la main plutôt que posé en middleware sur la route :
+ * ses erreurs (fichier trop gros, type refusé) arriveraient sinon au
+ * gestionnaire global, qui répondrait « Erreur serveur » pour une saisie que
+ * l'utilisateur peut corriger lui-même.
+ */
+exports.televerserImage = (req, res) => {
+    recevoirImage(req, res, async (err) => {
+        if (err) {
+            if (err.message === 'TYPE_REFUSE') {
+                return res.status(415).json({
+                    error: `Format non accepté. Formats possibles : ${TYPES_ACCEPTES.join(', ')}.`
+                });
+            }
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                return res.status(413).json({
+                    error: `Image trop lourde. ${Math.round(TAILLE_MAX / 1024 / 1024)} Mo au maximum.`
+                });
+            }
+            return echec(res, err, 'téléversement', 'Erreur lors de l\'envoi de l\'image');
+        }
+
+        if (!req.file) {
+            return res.status(400).json({ error: 'Aucune image reçue. Le champ attendu s\'appelle « image ».' });
+        }
+
+        const cafeId = req.params.id;
+
+        try {
+            const [rows] = await db.query(
+                `SELECT id, image_url FROM cafes WHERE id = ? AND ${VIVANTES}`,
+                [cafeId]
+            );
+
+            if (rows.length === 0) {
+                return res.status(404).json({ error: 'Cette adresse n\'existe pas.' });
+            }
+
+            const ancienne = rows[0].image_url;
+            const url = await enregistrerImage(cafeId, req.file);
+
+            await db.query('UPDATE cafes SET image_url = ? WHERE id = ?', [url, cafeId]);
+
+            // L'ancienne image ne part qu'une fois la nouvelle en base : dans
+            // l'ordre inverse, un échec du UPDATE laisserait la fiche pointer
+            // vers un fichier qu'on vient d'effacer.
+            await supprimerImageLocale(ancienne);
+
+            return res.json({ message: 'Image enregistrée.', image_url: url });
+        } catch (erreur) {
+            return echec(res, erreur, 'téléversement', 'Erreur lors de l\'envoi de l\'image');
+        }
+    });
+};
+
+// DELETE /api/cafes/:id/image — retire la photo, la fiche retombe sur .image-repli.
+exports.supprimerImage = async (req, res) => {
+    const cafeId = req.params.id;
+
+    try {
+        const [rows] = await db.query(
+            `SELECT id, image_url FROM cafes WHERE id = ? AND ${VIVANTES}`,
+            [cafeId]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Cette adresse n\'existe pas.' });
+        }
+
+        await db.query('UPDATE cafes SET image_url = NULL WHERE id = ?', [cafeId]);
+        await supprimerImageLocale(rows[0].image_url);
+
+        return res.json({ message: 'Image retirée.', id: Number(cafeId) });
+    } catch (err) {
+        return echec(res, err, 'suppression d\'image', 'Erreur lors du retrait de l\'image');
     }
 };

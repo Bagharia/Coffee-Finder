@@ -6,6 +6,11 @@ node_modules/
 .env.local
 .env.production
 
+# Images téléversées : elles appartiennent à l'installation, pas au dépôt.
+# Le dossier est conservé (uploads/.gitkeep), son contenu non.
+back/uploads/*
+!back/uploads/.gitkeep
+
 # Build output
 dist/
 build/

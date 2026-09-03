@@ -60,7 +60,8 @@ exports.addOrUpdateAvis = async (req, res) => {
     const { note, commentaire } = req.body;
 
     try {
-        const [cafe] = await db.query('SELECT id FROM cafes WHERE id = ?', [cafeId]);
+        // Pas d'avis sur une adresse mise à la corbeille.
+        const [cafe] = await db.query('SELECT id FROM cafes WHERE id = ? AND supprime_le IS NULL', [cafeId]);
         if (cafe.length === 0) {
             return res.status(404).json({ error: 'Cette adresse n\'existe pas.' });
         }

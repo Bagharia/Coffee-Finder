@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { cafesAPI, LIMITE_MAX } from "../services/api";
 import AdminFormulaire from "../components/AdminFormulaire";
+import AdminCorbeille from "../components/AdminCorbeille";
 
 const FORMULAIRE_VIDE = {
   nom: "",
@@ -99,7 +100,7 @@ export default function Admin() {
   };
 
   const supprimer = async (cafe) => {
-    if (!window.confirm(`supprimer « ${cafe.nom} » ? les avis et favoris partent avec.`)) return;
+    if (!window.confirm(`mettre « ${cafe.nom} » à la corbeille ? les avis et les favoris sont conservés, et l'adresse pourra être rétablie.`)) return;
     try {
       await cafesAPI.delete(cafe.id);
       charger();
@@ -132,6 +133,8 @@ export default function Admin() {
             enCours={envoiEnCours}
             erreur={erreurFormulaire}
             modification={Boolean(enModification)}
+            cafeId={enModification?.id}
+            onImageTeleversee={charger}
           />
         </div>
       )}
@@ -165,13 +168,15 @@ export default function Admin() {
                   modifier
                 </button>
                 <button type="button" onClick={() => supprimer(cafe)} className="flex items-center text-meta text-rouge underline underline-offset-4">
-                  supprimer
+                  mettre à la corbeille
                 </button>
               </li>
             ))}
           </ul>
         )}
       </div>
+
+      <AdminCorbeille surChangement={charger} />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import AdminHoraires from "./AdminHoraires";
+import AdminImage from "./AdminImage";
 
 const SPECIALITES = ["Café", "Matcha", "Bubble Tea", "Thé"];
 
@@ -19,7 +20,7 @@ const EQUIPEMENTS = [
 const champ = "w-full border border-trait bg-carte px-3 text-corps text-encre";
 
 /** Formulaire d'ajout et de modification d'une adresse. */
-export default function AdminFormulaire({ valeurs, onChange, onEnvoyer, onAnnuler, enCours, erreur, modification }) {
+export default function AdminFormulaire({ valeurs, onChange, onEnvoyer, onAnnuler, enCours, erreur, modification, cafeId, onImageTeleversee }) {
   const modifier = (nom, valeur) => onChange({ ...valeurs, [nom]: valeur });
 
   const basculerSpecialite = (specialite) => {
@@ -58,12 +59,13 @@ export default function AdminFormulaire({ valeurs, onChange, onEnvoyer, onAnnule
         <input value={valeurs.adresse} onChange={(e) => modifier("adresse", e.target.value)} className={champ} />
       </label>
 
-      <label>
-        <span className="mb-2 block text-meta text-gris">
-          adresse de l&apos;image, 500 caractères maximum. laisser vide affiche l&apos;image de repli.
-        </span>
-        <input type="url" value={valeurs.image_url} onChange={(e) => modifier("image_url", e.target.value)} className={champ} />
-      </label>
+      <AdminImage
+        cafeId={cafeId}
+        imageUrl={valeurs.image_url}
+        onChangeUrl={(url) => modifier("image_url", url)}
+        onTeleverse={(url) => { modifier("image_url", url); onImageTeleversee?.(); }}
+      />
+
 
       {/* Le verdict est le produit : c'est ce que la fiche affiche en premier. */}
       <label>

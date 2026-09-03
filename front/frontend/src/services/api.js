@@ -32,6 +32,34 @@ async function requete(endpoint, { methode = 'GET', corps } = {}) {
   return donnees;
 }
 
+/**
+ * Envoi d'un fichier. Ne passe pas par `requete` : celle-ci sérialise le corps
+ * en JSON et pose un Content-Type. Pour un envoi multipart, c'est au navigateur
+ * de composer l'en-tête — il y met une frontière que nous ne pouvons pas
+ * deviner, et l'écrire à la main casse l'envoi.
+ */
+async function envoyerFichier(endpoint, fichier, champ = 'image') {
+  const formulaire = new FormData();
+  formulaire.append(champ, fichier);
+
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formulaire
+  });
+
+  const donnees = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      window.dispatchEvent(new CustomEvent('session-expiree'));
+    }
+    throw new Error(donnees?.error || "L'envoi de l'image a échoué.");
+  }
+
+  return donnees;
+}
+
 const get = (endpoint) => requete(endpoint);
 const post = (endpoint, corps) => requete(endpoint, { methode: 'POST', corps });
 const put = (endpoint, corps) => requete(endpoint, { methode: 'PUT', corps });
@@ -67,7 +95,16 @@ export const cafesAPI = {
 
   create: (cafe) => post('/cafes', cafe),
   update: (id, cafe) => put(`/cafes/${id}`, cafe),
-  delete: (id) => del(`/cafes/${id}`)
+
+  // Suppression réversible : l'adresse part à la corbeille, ses avis et ses
+  // favoris restent. `supprimerDefinitivement` détruit tout, sans retour.
+  delete: (id) => del(`/cafes/${id}`),
+  supprimerDefinitivement: (id) => del(`/cafes/${id}?definitif=1`),
+  getCorbeille: (params) => requeteListe('/cafes/corbeille', params),
+  restaurer: (id) => post(`/cafes/${id}/restaurer`),
+
+  televerserImage: (id, fichier) => envoyerFichier(`/cafes/${id}/image`, fichier),
+  supprimerImage: (id) => del(`/cafes/${id}/image`)
 };
 
 export const usersAPI = {

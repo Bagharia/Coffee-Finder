@@ -1,7 +1,7 @@
 const db = require('../config/db');
 const journal = require('../utils/journal');
 const { COLONNES_CAFE, JOINTURE, attacherHoraires, remplacerHoraires } = require('../utils/cafes');
-const { validerHoraires } = require('../utils/horaires');
+const { validerHoraires, conditionOuvert } = require('../utils/horaires');
 const { geocodeAdresse } = require('../utils/geocodage');
 const { normaliserAdresse, echapperLike } = require('../utils/adresse');
 const {
@@ -37,6 +37,9 @@ const { lirePagination, reponsePaginee, valider, versBooleen } = require('../uti
  */
 async function listerCafes(req, res, { where = '', valeurs = [], ordre = 'cafes.nom ASC', contexte, portee = VIVANTES }) {
     const { page, limite, offset } = lirePagination(req.query);
+    // `cafes.id` départage les ex æquo : sans lui, deux adresses de même nom
+    // peuvent changer de place d'une requête à l'autre et une page en répéterait
+    // une ou en sauterait une.
     const conditions = [portee, where].filter(Boolean);
     const clause = `WHERE ${conditions.join(' AND ')}`;
 
@@ -47,7 +50,7 @@ async function listerCafes(req, res, { where = '', valeurs = [], ordre = 'cafes.
         );
 
         const [rows] = await db.query(
-            `SELECT ${COLONNES_CAFE} ${JOINTURE} ${clause} ORDER BY ${ordre} LIMIT ? OFFSET ?`,
+            `SELECT ${COLONNES_CAFE} ${JOINTURE} ${clause} ORDER BY ${ordre}, cafes.id ASC LIMIT ? OFFSET ?`,
             [...valeurs, limite, offset]
         );
 
@@ -58,6 +61,37 @@ async function listerCafes(req, res, { where = '', valeurs = [], ordre = 'cafes.
         return echec(res, err, contexte);
     }
 }
+
+// Nombre maximal de points renvoyés pour la carte. Au-delà, la réponse le dit
+// (`total` > `donnees.length`) : une limite qui se tait ment.
+const CARTE_MAX = 2000;
+
+/**
+ * GET /api/cafes/carte — toutes les adresses placées, en version allégée.
+ *
+ * La carte a besoin de l'ensemble pour regrouper ses marqueurs : la paginer
+ * afficherait un morceau de Paris. On allège donc la réponse (pas de verdict,
+ * pas d'horaires) et la fiche complète se charge à la sélection.
+ */
+exports.getCarte = async (req, res) => {
+    const placees = `${VIVANTES} AND cafes.latitude IS NOT NULL AND cafes.longitude IS NOT NULL`;
+
+    try {
+        const [[{ total }]] = await db.query(`SELECT COUNT(*) AS total ${JOINTURE} WHERE ${placees}`);
+
+        const [rows] = await db.query(
+            `SELECT cafes.id AS id, cafes.nom AS nom, cafes.arrondissement AS arrondissement,
+                    cafes.latitude AS latitude, cafes.longitude AS longitude,
+                    criteres_cafe.specialite AS specialite, criteres_cafe.wifi AS wifi
+             ${JOINTURE} WHERE ${placees} ORDER BY cafes.id ASC LIMIT ?`,
+            [CARTE_MAX]
+        );
+
+        return res.json({ donnees: rows, total });
+    } catch (err) {
+        return echec(res, err, 'points de la carte');
+    }
+};
 
 exports.getRandomCafe = async (req, res) => {
     try {
@@ -93,15 +127,19 @@ exports.getCafeByArrondissement = (req, res) => listerCafes(req, res, {
     contexte: 'filtre arrondissement'
 });
 
-exports.getCafeBySpecialite = (req, res) => {
-    const specialite = req.params.spec;
-    return listerCafes(req, res, {
-        where: `(FIND_IN_SET(LOWER(?), LOWER(REPLACE(criteres_cafe.specialite, ' ', '')))
-                 OR FIND_IN_SET(LOWER(?), LOWER(criteres_cafe.specialite)))`,
-        valeurs: [specialite.replace(/\s/g, ''), specialite],
-        contexte: 'filtre spécialité'
-    });
-};
+// Les spécialités sont une liste séparée par des virgules, avec ou sans espace
+// derrière (« Matcha,Thé » ou « Matcha, Thé »). Une seule définition pour la
+// route dédiée et pour la recherche : deux versions divergeraient, et
+// « bubble tea » donnerait des résultats différents selon l'écran.
+const CONDITION_SPECIALITE = `(FIND_IN_SET(LOWER(?), LOWER(REPLACE(criteres_cafe.specialite, ' ', '')))
+                 OR FIND_IN_SET(LOWER(?), LOWER(criteres_cafe.specialite)))`;
+const valeursSpecialite = (specialite) => [specialite.replace(/\s/g, ''), specialite];
+
+exports.getCafeBySpecialite = (req, res) => listerCafes(req, res, {
+    where: CONDITION_SPECIALITE,
+    valeurs: valeursSpecialite(req.params.spec),
+    contexte: 'filtre spécialité'
+});
 
 exports.getCafeWithWifi = (req, res) => {
     const wifi = Number(req.params.wifi);
@@ -138,7 +176,7 @@ exports.getCafeWithAmbiance = (req, res) => listerCafes(req, res, {
 });
 
 exports.searchCafes = (req, res) => {
-    const { q, arrondissement, specialite, wifi, prix, ambiance, prises, travailler, theme, nb_personnes, nouveautes, coup_de_coeur } = req.query;
+    const { q, arrondissement, specialite, wifi, prix, ambiance, prises, travailler, theme, nb_personnes, nouveautes, coup_de_coeur, avec_verdict, ouvert, tri } = req.query;
 
     const conditions = [];
     const valeurs = [];
@@ -170,8 +208,8 @@ exports.searchCafes = (req, res) => {
 
     // Spécialité et thème sont des listes séparées par des virgules → FIND_IN_SET.
     if (specialite) {
-        conditions.push('FIND_IN_SET(LOWER(?), LOWER(criteres_cafe.specialite))');
-        valeurs.push(specialite.toLowerCase());
+        conditions.push(CONDITION_SPECIALITE);
+        valeurs.push(...valeursSpecialite(specialite));
     }
 
     if (wifi === '0' || wifi === '1') {
@@ -223,9 +261,23 @@ exports.searchCafes = (req, res) => {
         conditions.push('cafes.coup_de_coeur = 1');
     }
 
+    if (avec_verdict === '1') {
+        conditions.push("(cafes.verdict IS NOT NULL AND cafes.verdict <> '')");
+    }
+
+    if (ouvert === '1') {
+        const filtreOuvert = conditionOuvert();
+        conditions.push(filtreOuvert.sql);
+        valeurs.push(...filtreOuvert.valeurs);
+    }
+
+    // Liste blanche : l'ordre part dans le SQL tel quel, il ne vient jamais du client.
+    const ordre = tri === 'recent' ? 'cafes.created_at DESC' : undefined;
+
     return listerCafes(req, res, {
         where: conditions.join(' AND '),
         valeurs,
+        ordre,
         contexte: 'recherche'
     });
 };
@@ -326,39 +378,45 @@ exports.createCafe = async (req, res) => {
 
         const coords = await geocodeAdresse(adresse);
 
-        const [cafeResult] = await db.query(
-            `INSERT INTO cafes
-             (nom, arrondissement, adresse, description, image_url, latitude, longitude, verdict, coup_de_coeur)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                nom, arrondissement, adresse || null, description || null, image_url || null,
-                coords ? coords.lat : null, coords ? coords.lon : null,
-                verdict || null, versBooleen(coup_de_coeur)
-            ]
-        );
+        // Les trois écritures forment une seule adresse : validées ensemble ou
+        // pas du tout. Le géocodage, lent et réseau, reste hors transaction.
+        const cafeId = await db.transaction(async (cx) => {
+            const [cafeResult] = await cx.query(
+                `INSERT INTO cafes
+                 (nom, arrondissement, adresse, description, image_url, latitude, longitude, verdict, coup_de_coeur)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    nom, arrondissement, adresse || null, description || null, image_url || null,
+                    coords ? coords.lat : null, coords ? coords.lon : null,
+                    verdict || null, versBooleen(coup_de_coeur)
+                ]
+            );
 
-        const cafeId = cafeResult.insertId;
+            const id = cafeResult.insertId;
 
-        await db.query(
-            `INSERT INTO criteres_cafe
-             (cafe_id, nb_personnes, specialite, prix, wifi, prises, travailler, theme, ambiance)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                cafeId,
-                nb_personnes || null,
-                specialite || null,
-                prix || null,
-                versBooleen(wifi),
-                versBooleen(prises),
-                versBooleen(travailler),
-                theme || null,
-                ambiance || null
-            ]
-        );
+            await cx.query(
+                `INSERT INTO criteres_cafe
+                 (cafe_id, nb_personnes, specialite, prix, wifi, prises, travailler, theme, ambiance)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    id,
+                    nb_personnes || null,
+                    specialite || null,
+                    prix || null,
+                    versBooleen(wifi),
+                    versBooleen(prises),
+                    versBooleen(travailler),
+                    theme || null,
+                    ambiance || null
+                ]
+            );
 
-        if (plages) {
-            await remplacerHoraires(cafeId, plages);
-        }
+            if (plages) {
+                await remplacerHoraires(id, plages, cx);
+            }
+
+            return id;
+        });
 
         const [rows] = await db.query(
             `SELECT ${COLONNES_CAFE} ${JOINTURE} WHERE cafes.id = ?`,
@@ -439,13 +497,6 @@ exports.updateCafe = async (req, res) => {
             }
         }
 
-        if (majCafe.fragments.length > 0) {
-            await db.query(
-                `UPDATE cafes SET ${majCafe.fragments.join(', ')} WHERE id = ?`,
-                [...majCafe.valeurs, cafeId]
-            );
-        }
-
         const majCriteres = construireMaj(req.body, CHAMPS_CRITERES);
 
         for (const champ of CHAMPS_BOOLEENS) {
@@ -454,19 +505,30 @@ exports.updateCafe = async (req, res) => {
             majCriteres.valeurs.push(versBooleen(req.body[champ]));
         }
 
-        if (majCriteres.fragments.length > 0) {
-            await db.query(
-                `UPDATE criteres_cafe SET ${majCriteres.fragments.join(', ')} WHERE cafe_id = ?`,
-                [...majCriteres.valeurs, cafeId]
-            );
-        }
+        // Une modification touche jusqu'à trois tables : sans transaction, une
+        // panne au milieu laissait une adresse à moitié modifiée.
+        await db.transaction(async (cx) => {
+            if (majCafe.fragments.length > 0) {
+                await cx.query(
+                    `UPDATE cafes SET ${majCafe.fragments.join(', ')} WHERE id = ?`,
+                    [...majCafe.valeurs, cafeId]
+                );
+            }
 
-        // `undefined` laisse les horaires en place, un tableau vide les efface :
-        // « ne touche pas » et « cette adresse n'a plus d'horaires » sont deux
-        // intentions différentes et un PUT partiel doit pouvoir exprimer les deux.
-        if (plages !== undefined) {
-            await remplacerHoraires(cafeId, plages);
-        }
+            if (majCriteres.fragments.length > 0) {
+                await cx.query(
+                    `UPDATE criteres_cafe SET ${majCriteres.fragments.join(', ')} WHERE cafe_id = ?`,
+                    [...majCriteres.valeurs, cafeId]
+                );
+            }
+
+            // `undefined` laisse les horaires en place, un tableau vide les efface :
+            // « ne touche pas » et « cette adresse n'a plus d'horaires » sont deux
+            // intentions différentes et un PUT partiel doit pouvoir exprimer les deux.
+            if (plages !== undefined) {
+                await remplacerHoraires(cafeId, plages, cx);
+            }
+        });
 
         const [rows] = await db.query(
             `SELECT ${COLONNES_CAFE} ${JOINTURE} WHERE cafes.id = ?`,

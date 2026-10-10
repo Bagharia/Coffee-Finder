@@ -76,11 +76,6 @@ function requeteListe(endpoint, { page, limite } = {}) {
   return get(`${endpoint}${suffixe}`);
 }
 
-// Limite maximale acceptée par l'API. À utiliser là où l'écran a besoin de
-// toutes les adresses d'un coup (carte, recherche de la navbar, admin) —
-// au-delà de 100 adresses, ces écrans devront paginer pour de bon.
-export const LIMITE_MAX = 100;
-
 export const cafesAPI = {
   getAll: (params) => requeteListe('/cafes', params),
   getById: (id) => get(`/cafes/${id}`),
@@ -92,6 +87,8 @@ export const cafesAPI = {
   getByPrice: (prix, params) => requeteListe(`/cafes/prix/${prix}`, params),
   getNouveautes: (params) => requeteListe('/cafes/nouveautes', params),
   getRandom: () => get('/cafes/random'),
+  // Tous les points de la carte, version allégée. Réponse : { donnees, total }.
+  getCarte: () => get('/cafes/carte'),
 
   create: (cafe) => post('/cafes', cafe),
   update: (id, cafe) => put(`/cafes/${id}`, cafe),

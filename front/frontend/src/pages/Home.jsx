@@ -1,167 +1,170 @@
-import { lazy, Suspense, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import Carousel from "../components/Carousel";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import CafeCard from "../components/CafeCard";
+import AdresseCompacte from "../components/AdresseCompacte";
 import VerdictUne from "../components/VerdictUne";
-import { cafesAPI, LIMITE_MAX } from "../services/api";
+import PhraseConcept from "../components/PhraseConcept";
+import { cafesAPI } from "../services/api";
+import { useListePaginee } from "../hooks/useListePaginee";
 
-// La carte reste hors du chargement initial : Leaflet pèse plus que le reste du
-// guide réuni, et l'aperçu est tout en bas de la page.
-const Map = lazy(() => import("../components/Map"));
-
-const CATEGORIES = [
-  { label: "Café", href: "/category/Café" },
-  { label: "Matcha", href: "/category/Matcha" },
-  { label: "Bubble Tea", href: "/category/Bubble Tea" },
-  { label: "Thé", href: "/category/Thé" }
+// Le filtre « salon de thé » se lit sur la catégorie « Thé » de la base — la
+// DA écrit le mot que Wendy emploie, pas le nom technique de la colonne.
+const PILULES = [
+  { id: "", label: "tout paris" },
+  { id: "Matcha", label: "matcha" },
+  { id: "Bubble Tea", label: "bubble tea" },
+  { id: "Thé", label: "salon de thé" },
+  { id: "travailler", label: "bon pour travailler" }
 ];
 
+const NB_DERNIERES = 4;
+
 export default function Home() {
-  const navigate = useNavigate();
-  const [cafes, setCafes] = useState([]);
-  const [nouveautes, setNouveautes] = useState([]);
   const [une, setUne] = useState(null);
   const [uneChargement, setUneChargement] = useState(true);
-  const [chargement, setChargement] = useState(true);
-  const [erreur, setErreur] = useState(null);
-  const [tirageEnCours, setTirageEnCours] = useState(false);
+  const [avecVerdict, setAvecVerdict] = useState([]);
+  const [verdictsChargement, setVerdictsChargement] = useState(true);
+  const [totalGuide, setTotalGuide] = useState(null);
+  const [filtre, setFiltre] = useState("");
+  const [ouvertSeulement, setOuvertSeulement] = useState(false);
 
   useEffect(() => {
-    cafesAPI.getAll({ limite: LIMITE_MAX })
-      .then((reponse) => setCafes(reponse.donnees.slice(0, 8)))
-      .catch((err) => setErreur(err.message))
-      .finally(() => setChargement(false));
-
-    cafesAPI.getNouveautes()
-      .then((reponse) => setNouveautes(reponse.donnees.slice(0, 4)))
-      .catch(() => setNouveautes([]));
-
     // Un coup de cœur pour la une. Il lui faut un verdict : sans texte, le bloc
     // n'a plus de raison d'être et l'accueil retombe sur son titre seul.
     cafesAPI.search({ coup_de_coeur: "1" }, { limite: 10 })
       .then((reponse) => setUne(reponse.donnees.find((cafe) => cafe.verdict) ?? null))
       .catch(() => setUne(null))
       .finally(() => setUneChargement(false));
+
+    // La colonne héro est la sélection de Wendy : quatre adresses à verdict
+    // suffisent (trois affichées, une de marge si la une en fait partie).
+    cafesAPI.search({ avec_verdict: "1" }, { limite: NB_DERNIERES })
+      .then((reponse) => setAvecVerdict(reponse.donnees))
+      .catch(() => setAvecVerdict([]))
+      .finally(() => setVerdictsChargement(false));
+
+    // Seul le total est utile ici (« voir les N adresses sur la carte »).
+    cafesAPI.getAll({ limite: 1 })
+      .then((reponse) => setTotalGuide(reponse.total))
+      .catch(() => setTotalGuide(null));
   }, []);
 
-  const tirerAuSort = async () => {
-    setTirageEnCours(true);
-    try {
-      const cafe = await cafesAPI.getRandom();
-      navigate(`/cafe/${cafe.id}`);
-    } catch (err) {
-      setErreur(err.message);
-    } finally {
-      setTirageEnCours(false);
-    }
-  };
+  // Les filtres partent au serveur : l'accueil ne charge plus tout le guide
+  // pour en afficher quatre, et le compte affiché est celui du guide entier.
+  const filtresServeur = useMemo(() => {
+    const filtres = { tri: "recent" };
+    if (filtre === "travailler") filtres.travailler = "1";
+    else if (filtre) filtres.specialite = filtre;
+    if (ouvertSeulement) filtres.ouvert = "1";
+    return filtres;
+  }, [filtre, ouvertSeulement]);
+
+  const recuperer = useCallback(
+    ({ page }) => cafesAPI.search(filtresServeur, { page, limite: NB_DERNIERES }),
+    [filtresServeur]
+  );
+
+  const { adresses: dernieres, total, chargement, erreur } = useListePaginee(recuperer, filtresServeur);
+
+  const heroSecondaires = useMemo(
+    () => avecVerdict.filter((cafe) => cafe.id !== une?.id).slice(0, 3),
+    [avecVerdict, une]
+  );
 
   return (
-    <div className="bg-papier">
-      {/* Le verdict ouvre la page. Le titre du site est déjà dans la barre :
-          le répéter en grand ne dirait rien de plus, tandis qu'un avis donne à
-          lire dès la première seconde. Aucune photo décorative — celle qui
-          s'affiche est celle de l'adresse dont on parle. */}
-      <section className="border-b border-trait px-6 py-14 md:py-20">
-        <div className="mx-auto max-w-6xl">
-          <h1 className="text-titre text-encre">Spotheplace</h1>
-          <p className="chapo">
-            Les Cafés, Salons De Thé Et Bubble Tea De Paris. Une Adresse, Un Verdict.
-          </p>
+    <div>
+      <section className="mx-auto max-w-6xl px-4 pt-6 sm:px-6">
+        <PhraseConcept total={totalGuide} />
 
-          <div className="mt-12">
-            <VerdictUne cafe={une} chargement={uneChargement} />
-          </div>
-
-          <div className="mt-12 flex flex-wrap gap-3">
-            <Link to="/cafes" className="bouton">
-              Parcourir Le Guide
-            </Link>
+        {/* Sur téléphone les pilules défilent sur une seule ligne : empilées
+            sur trois rangs, elles repoussaient la une sous le pli. */}
+        <div className="mt-4 flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:gap-3 sm:overflow-visible sm:pb-0">
+          {PILULES.map(({ id, label }) => (
             <button
+              key={id || "tout"}
               type="button"
-              onClick={tirerAuSort}
-              disabled={tirageEnCours}
-              className="bouton-secondaire"
+              onClick={() => setFiltre(id)}
+              className={`${filtre === id ? "bouton" : "bouton-secondaire"} shrink-0 whitespace-nowrap`}
             >
-              {tirageEnCours ? "on cherche…" : "au hasard"}
+              {label}
             </button>
-          </div>
+          ))}
 
-          <nav className="mt-10">
-            <h2 className="mb-3 text-meta text-gris">Spécialités</h2>
-            <ul className="flex flex-wrap gap-x-6">
-              {CATEGORIES.map(({ label, href }) => (
-                <li key={href}>
-                  <Link to={href} className="flex items-center text-encre underline underline-offset-4">
-                    {label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            </nav>
+          <button
+            type="button"
+            aria-pressed={ouvertSeulement}
+            onClick={() => setOuvertSeulement((v) => !v)}
+            className={`${ouvertSeulement ? "bouton" : "bouton-secondaire"} shrink-0 gap-2 whitespace-nowrap`}
+          >
+            <span className="plaque-puce" aria-hidden="true" />
+            ouvert maintenant
+          </button>
+        </div>
+
+        <p className="mt-2 text-right text-meta font-bold text-gris" aria-live="polite">
+          {chargement ? "on regarde…" : `${total} adresse${total > 1 ? "s" : ""}`}
+        </p>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 pt-3 sm:px-6">
+        <div className="grid gap-5 lg:grid-cols-[2fr_1fr]">
+          <VerdictUne cafe={une} chargement={uneChargement} />
+
+          <div className="grid grid-rows-3 gap-3.5">
+            {verdictsChargement ? (
+              Array.from({ length: 3 }, (_, i) => <div key={i} className="squelette h-28" />)
+            ) : (
+              heroSecondaires.map((cafe) => <AdresseCompacte key={cafe.id} cafe={cafe} />)
+            )}
+          </div>
         </div>
       </section>
 
-      <section className="border-b border-trait px-6 py-16">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-8 flex items-end justify-between gap-4">
-            <h2 className="text-section text-encre">Le guide</h2>
-            <Link to="/cafes" className="flex items-center text-meta text-gris underline underline-offset-4">
-              Tout Voir
-            </Link>
-          </div>
+      <section className="mx-auto max-w-6xl px-4 pt-12 sm:px-6">
+        <div className="flex flex-wrap items-baseline gap-4">
+          <h2 className="text-section text-encre">les dernières adresses</h2>
+          <Link to="/cafes" className="ml-auto flex items-center text-meta font-bold text-encre underline underline-offset-4">
+            tout le guide →
+          </Link>
+        </div>
 
+        <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {chargement ? (
-            // Squelette : la forme et la place exactes de ce qui arrive, pour
-            // que la page ne saute pas quand les adresses tombent.
-            <div className="flex gap-5 overflow-hidden">
-              {Array.from({ length: 4 }, (_, i) => (
-                <div key={i} className="squelette h-96 w-80 shrink-0" />
-              ))}
-            </div>
+            Array.from({ length: 4 }, (_, i) => <div key={i} className="squelette h-96" />)
           ) : erreur ? (
             <p className="mesure text-corps text-encre">
               {erreur} le guide se recharge en rafraîchissant la page.
             </p>
-          ) : cafes.length === 0 ? (
+          ) : dernieres.length === 0 ? (
             <p className="mesure text-corps text-encre">
-              aucune adresse dans le guide pour l&apos;instant. la première arrive bientôt.
+              aucune adresse ne correspond à ce filtre pour l&apos;instant. en essayer un autre, ou tout paris.
             </p>
           ) : (
-            <Carousel cafes={cafes} />
+            dernieres.map((cafe) => <CafeCard key={cafe.id} cafe={cafe} />)
           )}
         </div>
       </section>
 
-      {nouveautes.length > 0 && (
-        <section className="border-b border-trait px-6 py-16">
-          <div className="mx-auto max-w-6xl">
-            <h2 className="mb-2 text-section text-encre">Arrivées récentes</h2>
-            <p className="mb-8 text-meta text-gris">Ajoutées Au Cours Des Trente Derniers Jours</p>
-
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {nouveautes.map((cafe) => (
-                <CafeCard key={cafe.id} cafe={cafe} />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      <section className="px-6 py-16">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-8 flex items-end justify-between gap-4">
-            <h2 className="text-section text-encre">Sur le plan</h2>
-            <Link to="/map" className="flex items-center text-meta text-gris underline underline-offset-4">
-              Ouvrir La Carte
-            </Link>
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+        <div className="grid items-center gap-6 rounded-carte bg-plaque p-6 shadow-carte-vif sm:grid-cols-[220px_1fr_auto]">
+          <div className="apercu-carte hidden h-40 rounded-doux sm:block">
+            <span className="apercu-carte-point" style={{ left: "28%", top: "32%" }} />
+            <span className="apercu-carte-point" style={{ left: "58%", top: "62%" }} />
+            <span className="apercu-carte-point" style={{ left: "76%", top: "24%" }} />
           </div>
 
-          <div className="aspect-[4/3] border border-trait sm:aspect-[21/9]">
-            <Suspense fallback={<div className="squelette h-full w-full" />}>
-              <Map />
-            </Suspense>
+          <div>
+            <p className="text-section text-carte">
+              {totalGuide === null ? "voir toutes les adresses sur la carte" : `voir les ${totalGuide} adresses sur la carte`}
+            </p>
+            <p className="mt-1 text-corps font-bold text-plaque-attenue">
+              pour retrouver une adresse une fois dans la rue
+            </p>
           </div>
+
+          <Link to="/map" className="bouton-accent">
+            ouvrir la carte
+          </Link>
         </div>
       </section>
     </div>

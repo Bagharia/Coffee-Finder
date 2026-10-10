@@ -1,43 +1,49 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import CafeCard from "../components/CafeCard";
 import ProfileMotDePasse from "../components/ProfileMotDePasse";
-import { favorisAPI, LIMITE_MAX } from "../services/api";
+import { favorisAPI } from "../services/api";
+import { useListePaginee } from "../hooks/useListePaginee";
 import { useAuth } from "../hooks/useAuth";
+import { useTitrePage } from "../hooks/useTitrePage";
 
 const ONGLETS = [
-  { id: "favoris", label: "Mes Favoris" },
-  { id: "reglages", label: "Réglages" }
+  { id: "favoris", label: "mes favoris" },
+  { id: "reglages", label: "réglages" }
 ];
 
+const PAR_PAGE = 12;
+
 export default function Profile() {
+  useTitrePage("Mon compte");
   const navigate = useNavigate();
   const { utilisateur, chargement, connecte, deconnexion } = useAuth();
-
-  const [favoris, setFavoris] = useState([]);
-  const [favorisChargement, setFavorisChargement] = useState(true);
-  const [favorisErreur, setFavorisErreur] = useState(null);
   const [onglet, setOnglet] = useState("favoris");
+  const [erreurRetrait, setErreurRetrait] = useState(null);
 
-
+  // Tant que le profil n'est pas revenu de l'API, on ne redirige pas :
+  // sinon un rechargement de page éjecterait une session valable.
   useEffect(() => {
-    // Tant que le profil n'est pas revenu de l'API, on ne redirige pas :
-    // sinon un rechargement de page éjecterait une session valable.
-    if (chargement) return;
-    if (!connecte) { navigate("/login"); return; }
-
-    favorisAPI.getAll({ limite: LIMITE_MAX })
-      .then((reponse) => setFavoris(reponse.donnees))
-      .catch((err) => setFavorisErreur(err.message))
-      .finally(() => setFavorisChargement(false));
+    if (!chargement && !connecte) navigate("/login");
   }, [chargement, connecte, navigate]);
 
+  const recuperer = useCallback(
+    ({ page }) => (connecte ? favorisAPI.getAll({ page, limite: PAR_PAGE }) : Promise.resolve({ donnees: [], total: 0 })),
+    [connecte]
+  );
+
+  const {
+    adresses: favoris, total, chargement: favorisChargement, chargementSuite,
+    erreur: favorisErreur, encore, chargerPlus, recharger
+  } = useListePaginee(recuperer, { connecte });
+
   const retirerFavori = async (cafeId) => {
+    setErreurRetrait(null);
     try {
       await favorisAPI.remove(cafeId);
-      setFavoris((liste) => liste.filter((cafe) => cafe.id !== cafeId));
+      recharger();
     } catch (err) {
-      setFavorisErreur(err.message);
+      setErreurRetrait(err.message);
     }
   };
 
@@ -53,11 +59,11 @@ export default function Profile() {
         <div>
           <h1 className="text-titre text-encre">{utilisateur?.username ?? "Mon compte"}</h1>
           <p className="chapo">
-            {favoris.length} adresse{favoris.length === 1 ? "" : "s"} en favori
+            {total} adresse{total === 1 ? "" : "s"} en favori
           </p>
         </div>
         <button type="button" onClick={seDeconnecter} className="flex items-center text-meta text-rouge underline underline-offset-4">
-          Se Déconnecter
+          se déconnecter
         </button>
       </div>
 
@@ -79,7 +85,7 @@ export default function Profile() {
 
       {onglet === "favoris" && (
         <div className="mt-8">
-          {favorisChargement ? (
+          {chargement || favorisChargement ? (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 3 }, (_, i) => <div key={i} className="squelette h-72" />)}
             </div>
@@ -93,7 +99,7 @@ export default function Profile() {
                 aucune adresse en favori pour l&apos;instant. le cœur sur une fiche la garde ici.
               </p>
               <Link to="/cafes" className="bouton mt-6">
-                Parcourir Le Guide
+                parcourir le guide
               </Link>
             </div>
           ) : (
@@ -106,11 +112,22 @@ export default function Profile() {
                     onClick={() => retirerFavori(cafe.id)}
                     className="flex items-center self-start text-meta text-gris underline underline-offset-4"
                   >
-                    Retirer Des Favoris
+                    retirer des favoris
                   </button>
                 </li>
               ))}
             </ul>
+          )}
+
+          {erreurRetrait && <p className="mt-4 text-meta text-rouge">{erreurRetrait}</p>}
+
+          {encore && (
+            <div className="mt-10 flex flex-col items-center gap-2">
+              <button type="button" onClick={chargerPlus} disabled={chargementSuite} className="bouton-secondaire">
+                {chargementSuite ? "on charge…" : "voir la suite"}
+              </button>
+              <p className="text-meta text-gris" aria-live="polite">{favoris.length} sur {total}</p>
+            </div>
           )}
         </div>
       )}
@@ -118,12 +135,12 @@ export default function Profile() {
       {onglet === "reglages" && (
         <div className="mt-8 flex flex-col gap-10">
           <section>
-            <h2 className="mb-4 text-meta text-gris">Changer de mot de passe</h2>
+            <h2 className="mb-4 text-meta text-gris">changer de mot de passe</h2>
             <ProfileMotDePasse />
           </section>
 
           <section>
-            <h2 className="mb-4 text-meta text-gris">Mes avis</h2>
+            <h2 className="mb-4 text-meta text-gris">mes avis</h2>
             <p className="mesure text-corps text-encre">
               vos avis se retrouvent sur la fiche de chaque adresse, à l&apos;endroit où vous les avez écrits.
             </p>

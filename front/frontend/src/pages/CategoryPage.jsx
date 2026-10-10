@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import CafeCard from "../components/CafeCard";
 import { cafesAPI } from "../services/api";
 import { useListePaginee } from "../hooks/useListePaginee";
+import { useTitrePage } from "../hooks/useTitrePage";
 
 // L'URL peut arriver sous plusieurs formes selon d'où l'on vient.
 // La spécialité stockée en base, elle, est unique.
@@ -24,6 +25,7 @@ const PAR_PAGE = 12;
 export default function CategoryPage() {
   const { category } = useParams();
   const specialite = SPECIALITES[category] ?? category;
+  useTitrePage(specialite, `Les adresses ${specialite} du guide SpotThePlace, à Paris.`);
 
   // La spécialité fait office de filtre : changer de catégorie relance le
   // chargement à la page 1, et le hook ignore les réponses devenues obsolètes.
@@ -66,7 +68,7 @@ export default function CategoryPage() {
               aucune adresse en {specialite.toLowerCase()} dans le guide pour l&apos;instant.
             </p>
             <Link to="/cafes" className="bouton mt-6">
-              Parcourir Tout Le Guide
+              parcourir tout le guide
             </Link>
           </div>
         ) : (

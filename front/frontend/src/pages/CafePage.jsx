@@ -4,6 +4,7 @@ import CafeCard from "../components/CafeCard";
 import Filters from "../components/Filters";
 import { cafesAPI } from "../services/api";
 import { useListePaginee } from "../hooks/useListePaginee";
+import { useTitrePage } from "../hooks/useTitrePage";
 
 const FILTRES_VIDES = {
   arrondissement: "", prix: "", ambiance: "", wifi: "", prises: "", travailler: "", nouveautes: ""
@@ -15,6 +16,7 @@ const FILTRES_VIDES = {
 const PAR_PAGE = 12;
 
 export default function CafePage() {
+  useTitrePage("Le guide", "Toutes les adresses du guide : cafés, salons de thé et bubble tea de Paris, filtrables par quartier, prix et ambiance.");
   const navigate = useNavigate();
   const [filtres, setFiltres] = useState(FILTRES_VIDES);
   const [tirageEnCours, setTirageEnCours] = useState(false);
@@ -58,7 +60,7 @@ export default function CafePage() {
       <div className="border-b border-trait px-6 py-12">
         <div className="mx-auto flex max-w-6xl flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-titre text-encre">Le guide</h1>
+            <h1 className="text-titre text-encre">le guide</h1>
             <p className="chapo" aria-live="polite">{compte}</p>
           </div>
           <button
@@ -90,14 +92,14 @@ export default function CafePage() {
           ) : adresses.length === 0 ? (
             <div className="mesure">
               <p className="text-corps text-encre">
-                Aucune Adresse Ne Correspond À Ces Filtres. En Retirer Un, Ou Proposer La Vôtre.
+                aucune adresse ne correspond à ces filtres. en retirer un, ou proposer la vôtre.
               </p>
               <button
                 type="button"
                 onClick={() => setFiltres(FILTRES_VIDES)}
                 className="bouton mt-6"
               >
-                Effacer Les Filtres
+                effacer les filtres
               </button>
             </div>
           ) : (

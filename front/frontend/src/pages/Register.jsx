@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { useTitrePage } from "../hooks/useTitrePage";
 
 // Aligné sur ce qu'exige l'API : la refuser côté serveur après l'avoir acceptée
 // côté front, c'est faire remplir un formulaire pour rien.
 const MOT_DE_PASSE_MIN = 8;
 
 export default function Register() {
+  useTitrePage("Créer un compte");
   const navigate = useNavigate();
   const { inscription } = useAuth();
   const [champs, setChamps] = useState({ username: "", email: "", password: "", confirmation: "" });
@@ -49,8 +51,8 @@ export default function Register() {
 
   return (
     <div className="mx-auto max-w-sm px-6 py-16">
-      <h1 className="text-titre text-encre">Créer un compte</h1>
-      <p className="chapo">Pour Garder Vos Adresses Et Donner Votre Avis.</p>
+      <h1 className="text-titre text-encre">créer un compte</h1>
+      <p className="chapo">pour garder vos adresses et donner votre avis.</p>
 
       {erreur && <p className="mt-6 text-meta text-rouge">{erreur}</p>}
 
@@ -64,12 +66,12 @@ export default function Register() {
             onChange={changer}
             autoComplete="username"
             required
-            className="w-full border border-trait rounded-carte bg-carte px-3 text-corps text-encre"
+            className="w-full border border-trait-fort rounded-carte bg-carte px-3 text-corps text-encre"
           />
         </label>
 
         <label>
-          <span className="mb-2 block text-meta text-gris">Email</span>
+          <span className="mb-2 block text-meta text-gris">email</span>
           <input
             type="email"
             name="email"
@@ -77,7 +79,7 @@ export default function Register() {
             onChange={changer}
             autoComplete="email"
             required
-            className="w-full border border-trait rounded-carte bg-carte px-3 text-corps text-encre"
+            className="w-full border border-trait-fort rounded-carte bg-carte px-3 text-corps text-encre"
           />
         </label>
 
@@ -92,12 +94,12 @@ export default function Register() {
             onChange={changer}
             autoComplete="new-password"
             required
-            className="w-full border border-trait rounded-carte bg-carte px-3 text-corps text-encre"
+            className="w-full border border-trait-fort rounded-carte bg-carte px-3 text-corps text-encre"
           />
         </label>
 
         <label>
-          <span className="mb-2 block text-meta text-gris">Confirmation</span>
+          <span className="mb-2 block text-meta text-gris">confirmation</span>
           <input
             type="password"
             name="confirmation"
@@ -105,7 +107,7 @@ export default function Register() {
             onChange={changer}
             autoComplete="new-password"
             required
-            className="w-full border border-trait rounded-carte bg-carte px-3 text-corps text-encre"
+            className="w-full border border-trait-fort rounded-carte bg-carte px-3 text-corps text-encre"
           />
         </label>
 
@@ -116,7 +118,7 @@ export default function Register() {
 
       <p className="mt-8 text-meta text-gris">
         déjà un compte ?{" "}
-        <Link to="/login" className="underline underline-offset-4">Se Connecter</Link>
+        <Link to="/login" className="underline underline-offset-4">se connecter</Link>
       </p>
     </div>
   );

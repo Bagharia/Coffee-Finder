@@ -17,7 +17,7 @@ const EQUIPEMENTS = [
   ["travailler", "pour travailler"]
 ];
 
-const champ = "w-full border border-trait bg-carte px-3 text-corps text-encre";
+const champ = "w-full rounded-carte border border-trait-fort bg-carte px-3 text-corps text-encre";
 
 /** Formulaire d'ajout et de modification d'une adresse. */
 export default function AdminFormulaire({ valeurs, onChange, onEnvoyer, onAnnuler, enCours, erreur, modification, cafeId, onImageTeleversee }) {
@@ -41,21 +41,21 @@ export default function AdminFormulaire({ valeurs, onChange, onEnvoyer, onAnnule
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label>
-          <span className="mb-2 block text-meta text-gris">Nom</span>
+          <span className="mb-2 block text-meta text-gris">nom</span>
           <input required value={valeurs.nom} onChange={(e) => modifier("nom", e.target.value)} className={champ} />
         </label>
 
         <label>
-          <span className="mb-2 block text-meta text-gris">Arrondissement</span>
+          <span className="mb-2 block text-meta text-gris">arrondissement</span>
           <select required value={valeurs.arrondissement} onChange={(e) => modifier("arrondissement", e.target.value)} className={champ}>
-            <option value="">À Choisir</option>
+            <option value="">à choisir</option>
             {ARRONDISSEMENTS.map((arr) => <option key={arr} value={arr}>{arr}</option>)}
           </select>
         </label>
       </div>
 
       <label>
-        <span className="mb-2 block text-meta text-gris">Adresse, Géocodée Automatiquement</span>
+        <span className="mb-2 block text-meta text-gris">adresse, géocodée automatiquement</span>
         <input value={valeurs.adresse} onChange={(e) => modifier("adresse", e.target.value)} className={champ} />
       </label>
 
@@ -70,7 +70,7 @@ export default function AdminFormulaire({ valeurs, onChange, onEnvoyer, onAnnule
 
       {/* Le verdict est le produit : c'est ce que la fiche affiche en premier. */}
       <label>
-        <span className="mb-2 block text-meta text-gris">Le Verdict</span>
+        <span className="mb-2 block text-meta text-gris">le verdict</span>
         <textarea
           rows={4}
           value={valeurs.verdict}
@@ -86,16 +86,16 @@ export default function AdminFormulaire({ valeurs, onChange, onEnvoyer, onAnnule
           onChange={(e) => modifier("coup_de_coeur", e.target.checked ? 1 : 0)}
           className="h-4 w-4 accent-plaque"
         />
-        Coup De Cœur
+        coup de cœur
       </label>
 
       <label>
-        <span className="mb-2 block text-meta text-gris">Description</span>
+        <span className="mb-2 block text-meta text-gris">description</span>
         <textarea rows={3} value={valeurs.description} onChange={(e) => modifier("description", e.target.value)} className={champ} />
       </label>
 
       <fieldset>
-        <legend className="mb-2 text-meta text-gris">Spécialités</legend>
+        <legend className="mb-2 text-meta text-gris">spécialités</legend>
         <div className="flex flex-wrap gap-2">
           {SPECIALITES.map((specialite) => (
             <button
@@ -103,8 +103,8 @@ export default function AdminFormulaire({ valeurs, onChange, onEnvoyer, onAnnule
               type="button"
               aria-pressed={valeurs.specialite.includes(specialite)}
               onClick={() => basculerSpecialite(specialite)}
-              className={`flex items-center px-4 text-meta ${
-                valeurs.specialite.includes(specialite) ? "bg-plaque text-white" : "border border-trait-fort text-encre"
+              className={`flex items-center rounded-plaque px-4 text-meta ${
+                valeurs.specialite.includes(specialite) ? "bg-plaque text-white" : "border border-trait-fort bg-carte text-encre"
               }`}
             >
               {specialite.toLowerCase()}
@@ -115,24 +115,24 @@ export default function AdminFormulaire({ valeurs, onChange, onEnvoyer, onAnnule
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label>
-          <span className="mb-2 block text-meta text-gris">Prix</span>
+          <span className="mb-2 block text-meta text-gris">prix</span>
           <select value={valeurs.prix} onChange={(e) => modifier("prix", e.target.value)} className={champ}>
             {PRIX.map(([valeur, libelle]) => <option key={valeur} value={valeur}>{libelle}</option>)}
           </select>
         </label>
 
         <label>
-          <span className="mb-2 block text-meta text-gris">Capacité</span>
+          <span className="mb-2 block text-meta text-gris">capacité</span>
           <input value={valeurs.nb_personnes} onChange={(e) => modifier("nb_personnes", e.target.value)} className={champ} />
         </label>
 
         <label>
-          <span className="mb-2 block text-meta text-gris">Thème</span>
+          <span className="mb-2 block text-meta text-gris">thème</span>
           <input value={valeurs.theme} onChange={(e) => modifier("theme", e.target.value)} className={champ} />
         </label>
 
         <label>
-          <span className="mb-2 block text-meta text-gris">Ambiance</span>
+          <span className="mb-2 block text-meta text-gris">ambiance</span>
           <input value={valeurs.ambiance} onChange={(e) => modifier("ambiance", e.target.value)} className={champ} />
         </label>
       </div>
@@ -140,7 +140,7 @@ export default function AdminFormulaire({ valeurs, onChange, onEnvoyer, onAnnule
       <AdminHoraires plages={valeurs.horaires} onChange={(plages) => modifier("horaires", plages)} />
 
       <fieldset>
-        <legend className="mb-2 text-meta text-gris">Équipements</legend>
+        <legend className="mb-2 text-meta text-gris">équipements</legend>
         <div className="flex flex-col">
           {EQUIPEMENTS.map(([nom, libelle]) => (
             <label key={nom} className="flex min-h-11 items-center gap-3 text-corps text-encre">
@@ -163,7 +163,7 @@ export default function AdminFormulaire({ valeurs, onChange, onEnvoyer, onAnnule
           {enCours ? "enregistrement…" : "enregistrer"}
         </button>
         <button type="button" onClick={onAnnuler} className="bouton-secondaire">
-          Annuler
+          annuler
         </button>
       </div>
     </form>

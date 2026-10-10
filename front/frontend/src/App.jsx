@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 
@@ -11,6 +11,8 @@ import CategoryPage from "./pages/CategoryPage";
 import Admin from "./pages/Admin";
 import CafeDetails from "./components/CafeDetails";
 import Profile from "./pages/Profile";
+import Introuvable from "./pages/Introuvable";
+import ErreurGlobale from "./components/ErreurGlobale";
 import { AuthProvider } from "./context/AuthContext";
 import { useAuth } from "./hooks/useAuth";
 
@@ -24,10 +26,40 @@ function AdminRoute({ children }) {
   // Tant que le profil n'est pas revenu de l'API, on ne sait pas encore si la
   // personne a le droit d'être là : rediriger tout de suite éjecterait un
   // administrateur légitime à chaque rechargement.
-  if (chargement) return <p className="p-8 text-corps text-gris">On Vérifie Vos Droits…</p>;
+  if (chargement) return <p className="p-8 text-corps text-gris">on vérifie vos droits…</p>;
   if (!connecte) return <Navigate to="/login" replace />;
   if (!estAdmin) return <Navigate to="/" replace />;
   return children;
+}
+
+// Le filet d'erreur est réarmé à chaque changement d'adresse, d'où le besoin
+// de lire la position ici, sous le routeur.
+function Contenu() {
+  const { pathname } = useLocation();
+
+  return (
+    <ErreurGlobale cle={pathname}>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/cafes" element={<CafePage />} />
+        <Route path="/cafe/:id" element={<CafeDetails />} />
+        <Route path="/category/:category" element={<CategoryPage />} />
+        <Route
+          path="/map"
+          element={
+            <Suspense fallback={<div className="squelette m-6 h-96" />}>
+              <MapPage />
+            </Suspense>
+          }
+        />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+        <Route path="*" element={<Introuvable />} />
+      </Routes>
+    </ErreurGlobale>
+  );
 }
 
 function App() {
@@ -40,25 +72,8 @@ function App() {
         <div className="flex min-h-screen flex-col">
           <Navbar />
 
-          <main className="flex-1 pt-16">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/cafes" element={<CafePage />} />
-              <Route path="/cafe/:id" element={<CafeDetails />} />
-              <Route path="/category/:category" element={<CategoryPage />} />
-              <Route
-                path="/map"
-                element={
-                  <Suspense fallback={<div className="squelette m-6 h-96" />}>
-                    <MapPage />
-                  </Suspense>
-                }
-              />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
-            </Routes>
+          <main className="flex-1 pt-20">
+            <Contenu />
           </main>
 
           <Footer />

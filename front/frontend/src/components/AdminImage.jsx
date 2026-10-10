@@ -53,7 +53,7 @@ export default function AdminImage({ cafeId, nom, imageUrl, onChangeUrl, onTelev
 
   return (
     <fieldset>
-      <legend className="mb-2 text-meta text-gris">Photo</legend>
+      <legend className="mb-2 text-meta text-gris">photo</legend>
 
       {imageUrl && (
         <div className="mb-3 flex items-start gap-4">
@@ -70,7 +70,7 @@ export default function AdminImage({ cafeId, nom, imageUrl, onChangeUrl, onTelev
               disabled={enCours}
               className="flex min-h-11 items-center text-meta text-rouge underline underline-offset-4 disabled:opacity-50"
             >
-              Retirer La Photo
+              retirer la photo
             </button>
           )}
         </div>
@@ -79,7 +79,7 @@ export default function AdminImage({ cafeId, nom, imageUrl, onChangeUrl, onTelev
       {cafeId ? (
         <label className="flex flex-col gap-2">
           <span className="text-meta text-gris">
-            Téléverser Un Fichier — JPEG, PNG, WebP Ou AVIF, 5 Mo Au Maximum
+            téléverser un fichier — JPEG, PNG, WebP ou AVIF, 5 Mo au maximum
           </span>
           <input
             ref={champFichier}
@@ -108,7 +108,7 @@ export default function AdminImage({ cafeId, nom, imageUrl, onChangeUrl, onTelev
         />
       </label>
 
-      {enCours && <p className="mt-2 text-meta text-gris">Envoi En Cours…</p>}
+      {enCours && <p className="mt-2 text-meta text-gris">envoi en cours…</p>}
       {erreur && <p className="mt-2 text-meta text-rouge">{erreur}</p>}
     </fieldset>
   );

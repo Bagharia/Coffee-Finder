@@ -1,62 +1,34 @@
 import { Link } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
-const GUIDE = [
-  { label: "Toutes Les Adresses", href: "/cafes" },
-  { label: "La Carte", href: "/map" }
+const LIENS = [
+  { label: "le guide", href: "/cafes" },
+  { label: "la carte", href: "/map" }
 ];
 
-const SPECIALITES = [
-  { label: "Café", href: "/category/Café" },
-  { label: "Matcha", href: "/category/Matcha" },
-  { label: "Bubble Tea", href: "/category/Bubble Tea" },
-  { label: "Thé", href: "/category/Thé" }
-];
-
-function Colonne({ titre, liens }) {
-  return (
-    <nav>
-      <h2 className="mb-3 text-meta text-white/50">{titre}</h2>
-      <ul className="flex flex-col">
-        {liens.map(({ label, href }) => (
-          <li key={href}>
-            <Link
-              to={href}
-              className="flex items-center text-corps text-white/80 hover:text-white"
-            >
-              {label}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </nav>
-  );
-}
-
+/** Bandeau simple (DA révisée du 2026-09-05) — remplace les trois colonnes. */
 export default function Footer() {
+  const { connecte } = useAuth();
+
   return (
-    <footer className="bg-plaque px-6 py-16 text-white">
-      <div className="mx-auto flex max-w-6xl flex-col gap-12">
-        {/* Trois colonnes plutôt qu'une liste unique de sept liens : le pied de
-            page servait de sommaire sans dire de quoi. */}
-        <div className="grid gap-10 md:grid-cols-3">
-          <div className="flex flex-col items-start gap-4">
-            {/* Un seul geste fort par zone. Éclairci pour se détacher de la
-                barre : une plaque vert foncé sur fond vert foncé disparaît. */}
-            <span className="plaque plaque-sur-fonce">Spotheplace</span>
-            <p className="mesure text-corps text-white/70">
-              Les Cafés, Salons De Thé Et Bubble Tea De Paris.
-              Une Adresse, Un Verdict.
-            </p>
-          </div>
+    <footer className="flex flex-wrap items-center gap-6 bg-plaque/5 px-6 py-7">
+      <span className="text-adresse text-encre">spottheplace</span>
+      <p className="text-meta text-gris">
+        cafés, salons de thé et bubble tea de paris — testés par wendy
+      </p>
 
-          <Colonne titre="Le Guide" liens={GUIDE} />
-          <Colonne titre="Spécialités" liens={SPECIALITES} />
-        </div>
-
-        <p className="border-t border-white/15 pt-6 text-meta text-white/50">
-          © {new Date().getFullYear()} spotheplace — paris
-        </p>
-      </div>
+      <nav className="ml-auto flex flex-wrap gap-6">
+        {LIENS.map(({ label, href }) => (
+          <Link key={href} to={href} className="text-corps font-bold text-encre/70 hover:text-encre">
+            {label}
+          </Link>
+        ))}
+        {connecte && (
+          <Link to="/profile" className="text-corps font-bold text-encre/70 hover:text-encre">
+            mes favoris
+          </Link>
+        )}
+      </nav>
     </footer>
   );
 }

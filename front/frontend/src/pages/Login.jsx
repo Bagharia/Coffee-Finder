@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { useTitrePage } from "../hooks/useTitrePage";
 
 export default function Login() {
+  useTitrePage("Connexion");
   const navigate = useNavigate();
   const { connexion } = useAuth();
   const [champs, setChamps] = useState({ email: "", password: "" });
@@ -33,14 +35,14 @@ export default function Login() {
 
   return (
     <div className="mx-auto max-w-sm px-6 py-16">
-      <h1 className="text-titre text-encre">Connexion</h1>
-      <p className="chapo">Pour Retrouver Vos Favoris Et Vos Avis.</p>
+      <h1 className="text-titre text-encre">connexion</h1>
+      <p className="chapo">pour retrouver vos favoris et vos avis.</p>
 
       {erreur && <p className="mt-6 text-meta text-rouge">{erreur}</p>}
 
       <form onSubmit={envoyer} className="mt-8 flex flex-col gap-4">
         <label>
-          <span className="mb-2 block text-meta text-gris">Email</span>
+          <span className="mb-2 block text-meta text-gris">email</span>
           <input
             type="email"
             name="email"
@@ -48,12 +50,12 @@ export default function Login() {
             onChange={changer}
             autoComplete="email"
             required
-            className="w-full border border-trait rounded-carte bg-carte px-3 text-corps text-encre"
+            className="w-full border border-trait-fort rounded-carte bg-carte px-3 text-corps text-encre"
           />
         </label>
 
         <label>
-          <span className="mb-2 block text-meta text-gris">Mot De Passe</span>
+          <span className="mb-2 block text-meta text-gris">mot de passe</span>
           <input
             type="password"
             name="password"
@@ -61,7 +63,7 @@ export default function Login() {
             onChange={changer}
             autoComplete="current-password"
             required
-            className="w-full border border-trait rounded-carte bg-carte px-3 text-corps text-encre"
+            className="w-full border border-trait-fort rounded-carte bg-carte px-3 text-corps text-encre"
           />
         </label>
 

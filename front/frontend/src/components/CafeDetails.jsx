@@ -2,48 +2,13 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { cafesAPI, favorisAPI } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
+import { useTitrePage, resumer } from "../hooks/useTitrePage";
 import AvisSection from "./AvisSection";
 import HorairesSemaine from "./HorairesSemaine";
+import FichePratique from "./FichePratique";
 import Coeur from "../icons/Coeur";
-
-const PRIX = {
-  "1-10": "1–10 €",
-  "10-20": "10–20 €",
-  "20+": "20 € et plus"
-};
-
-/** Informations pratiques : un tableau serré, pas des cartes à pictogrammes. */
-function Pratique({ cafe }) {
-  const equipements = [
-    cafe.wifi === 1 && "wifi",
-    cafe.prises === 1 && "prises",
-    cafe.travailler === 1 && "pour travailler"
-  ].filter(Boolean);
-
-  const lignes = [
-    ["adresse", cafe.adresse],
-    ["arrondissement", cafe.arrondissement],
-    ["prix", cafe.prix ? (PRIX[cafe.prix] ?? cafe.prix) : null],
-    ["capacité", cafe.nb_personnes ? `${cafe.nb_personnes} personnes` : null],
-    ["spécialité", cafe.specialite?.split(",").map((s) => s.trim().toLowerCase()).join(", ")],
-    ["thème", cafe.theme?.toLowerCase()],
-    ["ambiance", cafe.ambiance?.toLowerCase()],
-    ["équipements", equipements.length > 0 ? equipements.join(", ") : null]
-  ].filter(([, valeur]) => Boolean(valeur));
-
-  if (lignes.length === 0) return null;
-
-  return (
-    <dl className="mt-10 border-t border-trait">
-      {lignes.map(([intitule, valeur]) => (
-        <div key={intitule} className="flex gap-6 border-b border-trait py-2.5">
-          <dt className="w-36 shrink-0 text-meta text-gris">{intitule}</dt>
-          <dd className="text-meta text-encre">{valeur}</dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
+import Signet from "../icons/Signet";
+import { classeCategorie } from "../utils/categories";
 
 export default function CafeDetails() {
   const { id } = useParams();
@@ -89,6 +54,12 @@ export default function CafeDetails() {
     }
   };
 
+  // Le verdict d'abord : c'est lui qui donne envie, et c'est le produit.
+  const titre = cafe
+    ? `${cafe.nom}${cafe.arrondissement ? `, ${cafe.arrondissement}` : ""}`
+    : erreur ? "Adresse introuvable" : undefined;
+  useTitrePage(titre, cafe ? resumer(cafe.verdict || cafe.description) || undefined : undefined);
+
   if (chargement) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-12">
@@ -106,11 +77,13 @@ export default function CafeDetails() {
           {erreur ?? "cette adresse n'existe pas."} elle a peut-être été retirée du guide.
         </p>
         <Link to="/cafes" className="bouton mt-6">
-          Parcourir Le Guide
+          parcourir le guide
         </Link>
       </div>
     );
   }
+
+  const classe = classeCategorie(cafe.specialite?.split(",")[0]?.trim());
 
   return (
     <article className="mx-auto max-w-3xl px-6 py-12">
@@ -118,7 +91,7 @@ export default function CafeDetails() {
         {/* En-tête : le geste fort de la fiche. */}
         <h1 className="plaque plaque-lg">
           {cafe.nom}
-          {cafe.arrondissement && <span className="ml-3 text-meta text-white/70">{cafe.arrondissement}</span>}
+          {cafe.arrondissement && <span className="ml-3 text-meta text-plaque-attenue">{cafe.arrondissement}</span>}
         </h1>
 
         <button
@@ -129,7 +102,7 @@ export default function CafeDetails() {
           aria-label={favori ? "retirer des favoris" : "ajouter aux favoris"}
           className="flex w-11 shrink-0 items-center justify-center text-gris disabled:opacity-50"
         >
-          <Coeur rempli={favori} taille={24} />
+          <Signet rempli={favori} taille={24} />
         </button>
       </div>
 
@@ -144,20 +117,31 @@ export default function CafeDetails() {
             fetchPriority="high"
           />
         ) : (
-          <p className="image-repli">{cafe.nom}</p>
+          <p className={`image-repli ${classe ? `image-repli-${classe}` : ""}`}>{cafe.nom}</p>
         )}
       </div>
 
       {/* Le verdict passe avant tout le reste : c'est le produit. */}
       {cafe.verdict ? (
         <div className="mt-10">
-          <p className="voix">{cafe.verdict}</p>
+          <p className="voix">
+            {cafe.verdict}
+            <span className="signature">— wendy</span>
+          </p>
           {cafe.coup_de_coeur === 1 && (
-            <p className="plaque plaque-active mt-5">Coup De Cœur</p>
+            <p className="plaque mt-5">
+              <span className="text-vert-accent"><Coeur rempli taille={14} /></span>
+              coup de cœur
+            </p>
           )}
         </div>
       ) : (
-        cafe.coup_de_coeur === 1 && <p className="plaque plaque-active mt-10">Coup De Cœur</p>
+        cafe.coup_de_coeur === 1 && (
+          <p className="plaque mt-10">
+            <span className="text-vert-accent"><Coeur rempli taille={14} /></span>
+            coup de cœur
+          </p>
+        )
       )}
 
       {cafe.description && (
@@ -166,7 +150,7 @@ export default function CafeDetails() {
 
       <HorairesSemaine plages={cafe.horaires} />
 
-      <Pratique cafe={cafe} />
+      <FichePratique cafe={cafe} />
 
       {cafe.adresse && (
         <a
@@ -175,7 +159,7 @@ export default function CafeDetails() {
           rel="noopener noreferrer"
           className="bouton-secondaire mt-8"
         >
-          Ouvrir Dans Un Plan
+          ouvrir dans un plan
         </a>
       )}
 

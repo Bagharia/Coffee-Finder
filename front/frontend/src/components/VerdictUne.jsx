@@ -1,63 +1,83 @@
 import { Link } from "react-router-dom";
+import { useFavori } from "../hooks/useFavori";
+import Coeur from "../icons/Coeur";
+import Signet from "../icons/Signet";
 
 /**
- * Le verdict d'une adresse, en ouverture de l'accueil.
+ * Le coup de cœur de Wendy, en ouverture de l'accueil — carte héro pleine
+ * largeur (DA révisée du 2026-09-05, sur le modèle du mockup Claude Design).
  *
- * Ce que vend ce site, c'est l'avis de Wendy. L'accueil l'annonçait sans jamais
- * en montrer une ligne : un titre, deux boutons, des vignettes. On donne à lire
- * dès la première seconde, avec du contenu réel plutôt que du décor.
- *
- * C'est aussi le seul endroit de l'accueil où Instrument Serif apparaît. La DA
- * réserve `.voix` aux verdicts — c'est précisément l'usage prévu, et il fait
- * enfin exister le contraste de registres sur lequel tout le système repose.
+ * C'est aussi le seul endroit de l'accueil où Caveat apparaît. `.voix-une`
+ * est réservée aux verdicts — c'est précisément l'usage prévu, et il fait
+ * exister le contraste de registres sur lequel tout le système repose.
  */
 export default function VerdictUne({ cafe, chargement }) {
+  const { favori, enCours, basculer } = useFavori(cafe?.id);
+
   if (chargement) {
     return (
-      <div className="grid gap-8 md:grid-cols-2 md:items-center">
-        <div className="squelette aspect-[4/3] w-full rounded-carte" />
-        <div className="flex flex-col gap-4">
-          <div className="squelette h-8 w-40" />
-          <div className="squelette h-6 w-full" />
-          <div className="squelette h-6 w-11/12" />
-          <div className="squelette h-6 w-4/5" />
-        </div>
-      </div>
+      <div className="squelette aspect-[21/9] w-full rounded-carte" />
     );
   }
 
   if (!cafe) return null;
 
   return (
-    <div className="grid gap-8 md:grid-cols-2 md:items-center">
-      {/* La première image utile de l'accueil : c'est elle que la DA veut voir
-          arriver sous deux secondes en 4G, donc elle passe devant le reste. */}
-      <div className="aspect-[4/3] overflow-hidden rounded-carte">
-        {cafe.image_url ? (
-          <img
-            src={cafe.image_url}
-            alt={`${cafe.nom}, ${cafe.adresse ?? cafe.arrondissement}`}
-            className="h-full w-full object-cover"
-            decoding="async"
-            loading="eager"
-            fetchPriority="high"
-          />
-        ) : (
-          <p className="image-repli h-full w-full">{cafe.nom}</p>
-        )}
-      </div>
+    <div className="relative flex min-h-[25rem] flex-col justify-end overflow-hidden rounded-carte shadow-carte-vif">
+      {/* La première image utile de l'accueil : c'est elle que CLAUDE-5.md
+          veut voir arriver sous deux secondes en 4G, donc elle passe devant
+          le reste. */}
+      {cafe.image_url ? (
+        <img
+          src={cafe.image_url}
+          alt={`${cafe.nom}, ${cafe.adresse ?? cafe.arrondissement}`}
+          className="absolute inset-0 h-full w-full object-cover"
+          decoding="async"
+          loading="eager"
+          fetchPriority="high"
+        />
+      ) : (
+        <div className="image-repli image-repli-cafe absolute inset-0" />
+      )}
 
-      <div>
-        {/* Un seul geste fort par zone : c'est celui-ci. */}
-        <p className="plaque">{cafe.nom}</p>
+      {/* Fondu sombre pour que le badge et la citation restent lisibles quelle
+          que soit la photo. */}
+      <div className="absolute inset-0 bg-gradient-to-t from-plaque/85 via-plaque/20 to-transparent" />
 
-        <p className="voix-une mt-6">{cafe.verdict}</p>
+      <span className="plaque absolute left-5 top-5">
+        <span className="text-vert-accent"><Coeur rempli taille={14} /></span>
+        coup de cœur de wendy
+      </span>
 
+      <button
+        type="button"
+        onClick={basculer}
+        disabled={enCours}
+        aria-pressed={favori}
+        aria-label={favori ? "retirer des favoris" : "ajouter aux favoris"}
+        className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-full bg-carte/90 text-encre shadow-carte disabled:opacity-50"
+      >
+        <Signet rempli={favori} />
+      </button>
+
+      {/* Dans le flux, pas en absolu : la carte grandit avec son texte au lieu
+          de couper le titre en haut sur un écran étroit. `pt-20` laisse la
+          place du badge et du bouton. */}
+      <div className="relative px-6 pb-6 pt-20 sm:px-8 sm:pb-8">
+        <h1 className="text-titre text-carte">{cafe.nom}</h1>
+        <p className="mt-1 text-corps font-semibold text-carte">{cafe.arrondissement}</p>
+
+        <p className="voix-une mt-3">
+          <span className="line-clamp-4">{cafe.verdict}</span>
+          <span className="signature">— wendy</span>
+        </p>
+
+        {/* En bloc : en ligne, il se glissait sous le bord de l'encart. */}
         <Link
           to={`/cafe/${cafe.id}`}
-          className="mt-6 inline-flex items-center text-meta text-encre underline underline-offset-4"
+          className="mt-4 flex w-fit items-center text-meta font-bold text-carte underline underline-offset-4"
         >
-          lire la fiche — {cafe.arrondissement}
+          lire la fiche
         </Link>
       </div>
     </div>

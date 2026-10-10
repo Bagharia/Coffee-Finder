@@ -69,6 +69,7 @@ app.use('/api/cafes', require('./routes/cafes'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/favoris', require('./routes/favoris'));
 app.use('/api/avis', require('./routes/avis'));
+app.use(require('./routes/seo'));
 
 // Sonde de disponibilité. Elle interroge la base : répondre « ok » sans l'avoir
 // touchée revient à certifier sain un serveur qui renvoie des 500 sur toutes

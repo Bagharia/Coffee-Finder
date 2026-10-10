@@ -17,6 +17,9 @@ export default defineConfig({
         target: 'http://localhost:3000',
         changeOrigin: true,
       },
+      // Servis par l'API, à la racine : on peut les ouvrir depuis le front en local.
+      '/sitemap.xml': { target: 'http://localhost:3000', changeOrigin: true },
+      '/robots.txt': { target: 'http://localhost:3000', changeOrigin: true },
     },
   },
 })

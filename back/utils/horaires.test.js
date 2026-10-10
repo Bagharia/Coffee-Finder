@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { validerHoraires, PLAGES_MAX } = require('./horaires');
+const { validerHoraires, instantParis, conditionOuvert, PLAGES_MAX } = require('./horaires');
 
 test('undefined signifie « ne touche pas aux horaires »', () => {
   assert.deepStrictEqual(validerHoraires(undefined), { plages: undefined });
@@ -68,4 +68,22 @@ test('refuse au-delà du plafond de plages', () => {
     jour: (i % 7) + 1, ouverture: '08:00', fermeture: '17:00'
   }));
   assert.match(validerHoraires(trop).erreur, /maximum/);
+});
+
+test('instantParis lit l\'heure de Paris en été (UTC+2)', () => {
+  // 22h30 UTC un mardi = 00h30 le mercredi à Paris. 2026-07-15 est un mercredi.
+  assert.deepStrictEqual(instantParis(new Date('2026-07-14T22:30:00Z')), { jour: 3, minutes: 30 });
+});
+
+test('instantParis lit l\'heure de Paris en hiver (UTC+1)', () => {
+  // 23h30 UTC un mercredi = 00h30 le jeudi à Paris. 2026-01-15 est un jeudi.
+  assert.deepStrictEqual(instantParis(new Date('2026-01-14T23:30:00Z')), { jour: 4, minutes: 30 });
+});
+
+test('conditionOuvert : un paramètre par ?, la veille du lundi est le dimanche', () => {
+  // Lundi 12 octobre 2026, 08h15 à Paris.
+  const { sql, valeurs } = conditionOuvert(new Date('2026-10-12T06:15:00Z'));
+
+  assert.strictEqual(sql.split('?').length - 1, valeurs.length);
+  assert.deepStrictEqual(valeurs, [1, '08:15:00', '08:15:00', 1, '08:15:00', 7, '08:15:00']);
 });

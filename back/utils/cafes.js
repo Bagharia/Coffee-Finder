@@ -63,12 +63,13 @@ async function attacherHoraires(cafes) {
 
 // Remplace en bloc plutôt que de différencier : une poignée de lignes par
 // adresse, et un remplacement ne peut pas laisser d'état intermédiaire.
-async function remplacerHoraires(cafeId, plages) {
-    await db.query('DELETE FROM cafe_horaires WHERE cafe_id = ?', [cafeId]);
+// `executeur` : la connexion d'une transaction en cours, sinon le pool.
+async function remplacerHoraires(cafeId, plages, executeur = db) {
+    await executeur.query('DELETE FROM cafe_horaires WHERE cafe_id = ?', [cafeId]);
 
     if (plages.length === 0) return;
 
-    await db.query(
+    await executeur.query(
         'INSERT INTO cafe_horaires (cafe_id, jour, ouverture, fermeture) VALUES ?',
         [plages.map((p) => [cafeId, p.jour, p.ouverture, p.fermeture])]
     );

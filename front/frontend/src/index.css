@@ -4,80 +4,105 @@
    SpotThePlace — jetons
    Source de vérité : DA.md. Aucune valeur visuelle ne s'écrit
    ailleurs que dans ce @theme.
+
+   Révisé le 2026-09-05 : remplace la doctrine « plaque de rue »
+   (voir `git log -- DA.md src/index.css` pour l'ancienne version)
+   par le langage visuel du mockup Claude Design « spottheplace ».
+   Le détail et le pourquoi de la bascule sont dans DA.md et dans
+   l'entrée du 2026-09-05 de `alexis.md`.
    ============================================================ */
 
 @theme {
-  /* --- Couleurs ---------------------------------------------------------
-     Contrastes recalculés, pas repris de mémoire :
-       blanc sur plaque 10,79:1 · encre sur papier 12,95:1
-       gris sur papier   4,74:1 · rouge sur papier  5,70:1
-       blanc sur rouge   6,78:1 · rouge sur plaque  1,59:1 → interdit
-     Ne pas éclaircir le gris sans refaire le calcul : il passe AA de justesse. */
+  /* --- Couleurs de marque ------------------------------------------------
+     Contrastes vérifiés :
+       encre (= vert de marque) sur papier 8,17:1 · sur carte 10,6:1
+       blanc sur plaque              10,79:1
+       gris sur papier                4,74:1 (valeur reprise telle quelle,
+         la luminosité du nouveau papier est quasi identique à l'ancienne)
+     Ne pas éclaircir sans refaire le calcul. */
   --color-plaque: #16453a;
   --color-plaque-clair: #2c6153;
-  --color-papier: #f2ebd9;
-  --color-carte: #fffdf7;
-  --color-encre: #2a2418;
-  --color-gris: #6e6753;
+  --color-plaque-attenue: #b9d2c7; /* texte secondaire sur fond plaque foncé */
+  --color-papier: #e9dfcd;
+  --color-creme: #f6eedf; /* halo décoratif de fond, jamais de texte dessus */
+  --color-carte: #fffdf8;
+  --color-encre: #16453a;
+  --color-gris: #67604d;
   --color-trait: #d6cbae;
-
-  /* Le trait clair fait 1,36:1 sur papier : parfait pour un séparateur, très
-     insuffisant pour la limite d'un bouton ou d'un champ, où la WCAG 1.4.11
-     exige 3:1. Même teinte, assombrie jusqu'à passer : 3,13:1 sur papier,
-     3,66:1 sur carte. Ne pas l'éclaircir sans refaire le calcul. */
   --color-trait-fort: #8f8460;
   --color-rouge: #a82f26;
 
-  /* --- Familles ---------------------------------------------------------
-     Instrument Serif n'existe qu'en une graisse : jamais de font-bold dessus,
-     le navigateur la synthétiserait. */
-  --font-sans: "Archivo", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-voix: "Instrument Serif", ui-serif, Georgia, "Times New Roman", serif;
+  /* --- Accent vif ---------------------------------------------------------
+     Un seul, pour « ouvert maintenant » et l'appel à l'action carte. Jamais
+     posé en fond sous du texte blanc — texte foncé dessus, comme le rouge
+     ne se pose jamais sur le vert (contraste 1,59:1 sinon). */
+  --color-vert-accent: #a9d94a;
+  --color-vert-accent-clair: #b8e45c;
+  --color-vert-accent-texte: #123a16;
 
-  /* --- Échelle ---------------------------------------------------------- */
-  /* Titre de page. Archivo est une grotesque de signalétique, neutre par
-     construction : à grande taille elle n'a de présence que si on la pousse.
-     600 est sa graisse la plus lourde chargée, le crénage se resserre à mesure
-     que le corps grandit, et l'interlignage descend sous 1 pour que deux
-     lignes forment un bloc plutôt qu'une liste. */
+  /* --- Couleurs par catégorie ----------------------------------------------
+     Décision du 2026-09-05 : renverse l'ancien refus d'un code couleur par
+     catégorie (DA.md §2 précédente). Deux teintes par catégorie — `-vif` pour
+     les motifs et fonds « sans photo », `-clair` pour l'encart du verdict.
+     Texte `--color-encre` dessus dans les deux cas : luminosité proche du
+     papier, même ordre de contraste. */
+  --color-cafe-vif: #bc9868;
+  --color-cafe-clair: #f3eadd;
+  --color-matcha-vif: #9fc24e;
+  --color-matcha-clair: #f1f5e4;
+  --color-bubbletea-vif: #e0b0cd;
+  --color-bubbletea-clair: #fbedf5;
+  --color-the-vif: #d9b47e;
+  --color-the-clair: #f6eddf;
+
+  /* --- Familles -----------------------------------------------------------
+     Nunito pour le repérage, Caveat (manuscrite) pour la voix de Wendy —
+     remplace Archivo / Instrument Serif italique. Caveat a de vraies
+     graisses 500/600 : plus de contrainte « jamais de font-bold ». */
+  --font-sans: "Nunito", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-voix: "Caveat", "Nunito", cursive;
+
+  /* --- Échelle -------------------------------------------------------- */
   --text-titre: clamp(2.5rem, 5.5vw, 4rem);
-  --text-titre--line-height: 0.98;
-  --text-titre--letter-spacing: -0.035em;
-  --text-titre--font-weight: 600;
+  --text-titre--line-height: 1;
+  --text-titre--letter-spacing: -0.02em;
+  --text-titre--font-weight: 800;
 
   --text-section: 1.75rem;
   --text-section--line-height: 1.15;
-  --text-section--font-weight: 500;
+  --text-section--font-weight: 800;
 
   --text-adresse: 1.3125rem;
   --text-adresse--line-height: 1.2;
-  --text-adresse--font-weight: 500;
+  --text-adresse--font-weight: 800;
 
   --text-corps: 1.0625rem;
   --text-corps--line-height: 1.6;
 
   --text-voix: 1.5rem;
-  --text-voix--line-height: 1.35;
+  --text-voix--line-height: 1.3;
 
-  /* La voix en ouverture d'accueil : c'est elle qui porte la page, elle ne
-     peut pas avoir la taille d'un avis en bas de fiche. */
-  --text-voix-une: clamp(1.75rem, 2.6vw, 2.5rem);
-  --text-voix-une--line-height: 1.3;
+  --text-voix-une: clamp(1.5rem, 2.2vw, 1.85rem);
+  --text-voix-une--line-height: 1.28;
 
   --text-meta: 0.8125rem;
   --text-meta--line-height: 1.4;
-  --text-meta--font-weight: 500;
+  --text-meta--font-weight: 700;
 
-  /* --- Rayons -----------------------------------------------------------
-     La plaque reste presque carrée : c'est une plaque de rue, pas un bouton.
-     Les blocs encadrés — cartes d'adresse, images, champs — sont adoucis :
-     angles vifs partout, la page devenait sèche et sans hiérarchie. */
-  --radius-plaque: 2px;
-  --radius-carte: 6px;
+  /* --- Rayons ---------------------------------------------------------
+     Passage à un langage pilule : la plaque n'est plus un rectangle de
+     signalétique mais une étiquette arrondie. */
+  --radius-plaque: 999px;
+  --radius-carte: 22px;
+  --radius-barre: 18px;
+  --radius-doux: 10px;
 
-  /* La barre et ses panneaux : un rayon plus franc, qui la fait lire comme un
-     objet posé et non comme un bloc de contenu. */
-  --radius-barre: 12px;
+  /* --- Ombres -----------------------------------------------------------
+     Abroge l'ancien interdit « pas d'ombre portée » (DA.md §9 n°7). Un seul
+     jeton d'élévation, deux intensités : repos et survol. */
+  --shadow-carte: 0 20px 40px -24px rgba(22, 69, 58, 0.55);
+  --shadow-carte-vif: 0 26px 46px -22px rgba(22, 69, 58, 0.6);
+  --shadow-barre: 0 10px 30px -18px rgba(22, 69, 58, 0.45);
 }
 
 /* ============================================================
@@ -85,14 +110,16 @@
    ============================================================ */
 
 @layer base {
-  /* iOS regrossit le texte en paysage sans ce réglage, ce qui décale toute
-     la mise en page sur un site qui se consulte debout dans la rue. */
   html {
     -webkit-text-size-adjust: 100%;
   }
 
   body {
     background-color: var(--color-papier);
+    background-image:
+      radial-gradient(1100px 500px at 15% -10%, var(--color-creme) 0%, rgba(246, 238, 223, 0) 70%),
+      radial-gradient(900px 600px at 100% 10%, var(--color-bubbletea-clair) 0%, rgba(251, 237, 245, 0) 65%);
+    background-attachment: fixed;
     color: var(--color-encre);
     font-family: var(--font-sans);
     font-size: var(--text-corps);
@@ -100,9 +127,6 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* `balance` répartit les titres courts sur leurs lignes au lieu de laisser
-     un mot seul en bas ; `pretty` fait la même chose pour la dernière ligne
-     des paragraphes. Sans coût, et le nom des adresses en profite. */
   h1,
   h2,
   h3 {
@@ -118,10 +142,6 @@
     color: var(--color-carte);
   }
 
-  /* Le bas de casse est une règle d'écriture, pas une transformation CSS :
-     forcer text-transform écraserait les noms propres des adresses. */
-
-  /* Le focus se voit, sur les deux fonds. Le vert tient 9,07:1 sur papier. */
   :focus-visible {
     outline: 2px solid var(--color-plaque);
     outline-offset: 2px;
@@ -142,8 +162,6 @@
     min-height: 44px;
   }
 
-  /* Sauf les cibles à l'intérieur d'une ligne de texte, où 44 px casserait
-     l'interligne — elles restent cliquables par leur conteneur. */
   p a[href],
   li a[href] {
     min-height: 0;
@@ -162,59 +180,85 @@
 }
 
 /* ============================================================
-   LA PLAQUE — le seul geste fort. Un seul par zone d'écran.
+   LA PLAQUE — devenue pilule. Reste le geste d'identité (logo,
+   badge de catégorie sur la carte héro, marqueur de carte), mais
+   n'est plus la seule forme forte de l'écran : les cartes portent
+   maintenant leur propre ombre.
    ============================================================ */
 
 @layer components {
-  /* Le filet blanc est un box-shadow interne : il ne prend pas de place et ne
-     décale rien, contrairement à une bordure ou à un élément intercalé.
-     Le premier calque couvre les 3 px du bord, le second laisse apparaître
-     1 px de blanc juste derrière. */
   .plaque {
     display: inline-flex;
     align-items: center;
+    gap: 0.4rem;
     max-width: 100%;
-    padding: 0.5rem 0.875rem;
+    padding: 0.55rem 1.1rem;
     border-radius: var(--radius-plaque);
     background-color: var(--color-plaque);
-    box-shadow:
-      inset 0 0 0 3px var(--color-plaque),
-      inset 0 0 0 4px #fff;
+    box-shadow: var(--shadow-carte);
     color: #fff;
     font-family: var(--font-sans);
     font-size: var(--text-meta);
-    font-weight: 500;
+    font-weight: 700;
     line-height: 1.4;
   }
 
   a.plaque:hover,
   button.plaque:hover {
     background-color: var(--color-plaque-clair);
-    box-shadow:
-      inset 0 0 0 3px var(--color-plaque-clair),
-      inset 0 0 0 4px #fff;
   }
 
-  /* En-tête de fiche : même objet, corps du nom d'adresse, filet à 4 px. */
   .plaque-lg {
-    padding: 0.75rem 1.125rem;
-    box-shadow:
-      inset 0 0 0 4px var(--color-plaque),
-      inset 0 0 0 5px #fff;
+    padding: 0.8rem 1.4rem;
     font-size: var(--text-adresse);
     line-height: 1.2;
   }
 
-  /* Sélection sur la carte. Rien ne bouge : pas d'agrandissement, pas d'ombre,
-     pas de rebond. Une seule active à la fois. */
-  .plaque-active {
-    background-color: var(--color-rouge);
-    box-shadow:
-      inset 0 0 0 3px var(--color-rouge),
-      inset 0 0 0 4px #fff;
+  /* Puce d'accent avant le texte — « coup de cœur de wendy », « ouvert
+     maintenant ». Un rond de couleur, jamais un pictogramme. */
+  .plaque-puce {
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: var(--color-vert-accent);
+    box-shadow: 0 0 0 4px rgba(169, 217, 74, 0.25);
   }
 
-  /* Marqueur de carte : le nom en toutes lettres, jamais une épingle. */
+  /* Le rond de Wendy à côté de la phrase de concept. */
+  .portrait-wendy {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    background: var(--color-trait);
+    box-shadow: 0 0 0 3px var(--color-carte), 0 6px 14px -8px rgba(22, 69, 58, 0.5);
+  }
+
+  @media (min-width: 640px) {
+    .portrait-wendy {
+      width: 44px;
+      height: 44px;
+    }
+  }
+
+  /* Position de la personne sur la carte : un disque, jamais une plaque —
+     une plaque porte toujours le nom d'une adresse. */
+  .position-utilisateur {
+    display: block;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: var(--color-plaque);
+    border: 3px solid var(--color-carte);
+    box-shadow: 0 0 0 6px rgba(22, 69, 58, 0.2);
+  }
+
+  /* Sélection sur la carte. Seul usage restant du rouge en dehors des
+     messages d'erreur/danger des formulaires. */
+  .plaque-active {
+    background-color: var(--color-rouge);
+  }
+
   .plaque-carte {
     max-width: 140px;
     overflow: hidden;
@@ -222,80 +266,149 @@
     white-space: nowrap;
   }
 
-  /* ==========================================================
-     LA VOIX — les mots de Wendy, et rien d'autre.
-     Pas de guillemets, pas d'encadré, pas de fond teinté :
-     la typographie est déjà la citation.
-     ========================================================== */
-  .voix {
-    max-width: 46ch;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--color-trait);
-    font-family: var(--font-voix);
-    font-size: var(--text-voix);
-    font-style: italic;
-    font-weight: 400;
-    line-height: 1.35;
+  .plaque-sur-fonce {
+    background-color: var(--color-plaque-clair);
   }
 
-  /* La voix, en extrait sur une carte du guide. 1.125rem est le plancher fixé
-     par la DA : en dessous, les déliés d'Instrument Serif disparaissent à
-     l'écran. Pas de filet ici — la carte a déjà ses bords. */
+  /* ==========================================================
+     ÉTIQUETTE DE CATÉGORIE — sur les cartes du guide. Couleur par
+     catégorie assumée (DA.md, révision du 2026-09-05).
+     ========================================================== */
+  .etiquette {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    padding: 0.4rem 0.9rem;
+    border-radius: var(--radius-plaque);
+    font-family: var(--font-sans);
+    font-size: var(--text-meta);
+    font-weight: 700;
+    color: var(--color-encre);
+    background-color: var(--color-trait);
+  }
+
+  .etiquette-cafe {
+    background-color: var(--color-cafe-clair);
+  }
+
+  .etiquette-matcha {
+    background-color: var(--color-matcha-clair);
+  }
+
+  .etiquette-bubble-tea {
+    background-color: var(--color-bubbletea-clair);
+  }
+
+  .etiquette-the {
+    background-color: var(--color-the-clair);
+  }
+
+  /* ==========================================================
+     LA VOIX — les mots de Wendy. Caveat au lieu d'Instrument Serif,
+     et désormais posée dans un encart (carte blanche ou teintée),
+     comme le veut le mockup, plutôt que soulignée d'un simple filet.
+     ========================================================== */
+  .voix {
+    display: inline-block;
+    max-width: 46ch;
+    padding: 1.1rem 1.4rem;
+    border-radius: 22px 22px 22px 4px;
+    background-color: var(--color-carte);
+    box-shadow: var(--shadow-carte);
+    font-family: var(--font-sans);
+    font-size: var(--text-corps);
+    font-weight: 400;
+    line-height: 1.6;
+    color: var(--color-encre);
+  }
+
   .voix-carte {
-    font-family: var(--font-voix);
-    font-size: 1.125rem;
-    font-style: italic;
+    display: block;
+    border-radius: 16px;
+    padding: 0.45rem 0.75rem;
+    background-color: var(--color-papier);
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
     font-weight: 400;
     line-height: 1.35;
     color: var(--color-encre);
   }
 
-  /* La même voix, à l'échelle d'une ouverture d'accueil. Pas de filet au-dessus
-     ici : la plaque du nom joue déjà ce rôle, deux séparations d'affilée
-     hacheraient le bloc. Mesure plus courte qu'un avis de fiche — une citation
-     se lit en diagonale, pas en paragraphe. */
-  .voix-une {
-    max-width: 26ch;
+  /* Le verdict se lit en Nunito ; la manuscrite ne garde que la signature, sur
+     la une et sur la fiche (DA révisée le 2026-10-10). */
+  .signature {
+    display: block;
+    margin-top: 0.15rem;
     font-family: var(--font-voix);
-    font-size: var(--text-voix-une);
-    font-style: italic;
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.1;
+  }
+
+  .voix-carte.teinte-cafe {
+    background-color: var(--color-cafe-clair);
+  }
+
+  .voix-carte.teinte-matcha {
+    background-color: var(--color-matcha-clair);
+  }
+
+  .voix-carte.teinte-bubble-tea {
+    background-color: var(--color-bubbletea-clair);
+  }
+
+  .voix-carte.teinte-the {
+    background-color: var(--color-the-clair);
+  }
+
+  /* La voix, à l'échelle d'une ouverture d'accueil : carte blanche posée sur
+     la photo héro. */
+  .voix-une {
+    display: block;
+    max-width: 19rem;
+    padding: 0.875rem 1.125rem;
+    border-radius: 22px;
+    background-color: var(--color-carte);
+    box-shadow: var(--shadow-carte-vif);
+    font-family: var(--font-sans);
+    font-size: 1rem;
     font-weight: 400;
-    line-height: 1.3;
+    line-height: 1.45;
+    color: var(--color-encre);
   }
 
   /* ==========================================================
-     BOUTONS — trois registres, pas onze piles d'utilitaires.
-     La même action avait jusqu'ici autant d'écritures que
-     d'endroits où elle apparaissait, et elles divergeaient.
+     BOUTONS — pilule, ombre, trois registres.
      ========================================================== */
   .bouton,
-  .bouton-secondaire {
+  .bouton-secondaire,
+  .bouton-accent {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     min-height: 44px;
-    padding: 0 1.5rem;
-    border-radius: var(--radius-carte);
+    padding: 0 1.75rem;
+    border-radius: var(--radius-plaque);
     font-size: var(--text-corps);
-    font-weight: 500;
+    font-weight: 700;
     line-height: 1;
     text-align: center;
   }
 
-  /* L'action principale d'un écran. Une seule par zone. */
   .bouton {
     background-color: var(--color-plaque);
     color: #fff;
+    box-shadow: var(--shadow-carte);
   }
 
   .bouton:hover {
     background-color: var(--color-plaque-clair);
   }
 
-  /* L'action de repli, à côté de la principale. */
   .bouton-secondaire {
     border: 1px solid var(--color-trait-fort);
     color: var(--color-encre);
+    background-color: var(--color-carte);
   }
 
   .bouton-secondaire:hover {
@@ -303,57 +416,69 @@
     color: var(--color-plaque);
   }
 
+  /* L'appel à l'action carte, seul usage de l'accent vert vif en fond. */
+  .bouton-accent {
+    background-color: var(--color-vert-accent);
+    color: var(--color-vert-accent-texte);
+    box-shadow: var(--shadow-carte);
+  }
+
+  .bouton-accent:hover {
+    background-color: var(--color-vert-accent-clair);
+  }
+
   .bouton:disabled,
-  .bouton-secondaire:disabled {
+  .bouton-secondaire:disabled,
+  .bouton-accent:disabled {
     opacity: 0.6;
   }
 
   /* ==========================================================
-     LA PLAQUE SUR FOND SOMBRE — barre et pied de page.
-     Une plaque vert foncé sur une barre vert foncé disparaît :
-     il ne reste que son liseré, qui se lit comme une boîte vide.
-     Elle s'éclaircit pour redevenir un objet posé sur la barre.
-     ========================================================== */
-  .plaque-sur-fonce {
-    background-color: var(--color-plaque-clair);
-    box-shadow:
-      inset 0 0 0 3px var(--color-plaque-clair),
-      inset 0 0 0 4px #fff;
-  }
-
-  /* ==========================================================
-     IMAGE DE REPLI — le cas le plus fréquent tant que la base
-     n'est pas remplie. Une adresse sans photo doit avoir l'air
-     assumée, pas cassée.
+     IMAGE DE REPLI — motif rayé coloré par catégorie plutôt qu'un
+     aplat plaque uni. Reste une place assumée, pas une image cassée ;
+     ne reprend pas les libellés de mise en page du mockup
+     (« PHOTO HERO — … ») qui étaient des indications pour le
+     photographe, pas du texte destiné à s'afficher.
      ========================================================== */
   .image-repli {
     display: flex;
     align-items: flex-end;
     width: 100%;
     height: 100%;
-    padding: 0.5rem 0.875rem;
-    background-color: var(--color-plaque);
-    color: #fff;
+    padding: 0.85rem 1.1rem;
+    background: repeating-linear-gradient(135deg, var(--color-trait) 0 16px, var(--color-papier) 16px 32px);
+    color: var(--color-encre);
     font-family: var(--font-sans);
     font-size: var(--text-meta);
-    font-weight: 500;
-    line-height: 1.4;
+    font-weight: 700;
+  }
+
+  .image-repli-cafe {
+    background: repeating-linear-gradient(135deg, var(--color-cafe-vif) 0 16px, var(--color-cafe-clair) 16px 32px);
+  }
+
+  .image-repli-matcha {
+    background: repeating-linear-gradient(135deg, var(--color-matcha-vif) 0 16px, var(--color-matcha-clair) 16px 32px);
+  }
+
+  .image-repli-bubble-tea {
+    background: repeating-linear-gradient(135deg, var(--color-bubbletea-vif) 0 16px, var(--color-bubbletea-clair) 16px 32px);
+  }
+
+  .image-repli-the {
+    background: repeating-linear-gradient(135deg, var(--color-the-vif) 0 16px, var(--color-the-clair) 16px 32px);
   }
 
   /* ==========================================================
-     SQUELETTE — l'état de chargement. Forme et place exactes du
-     contenu à venir, sans balayage : il annonce ce qui arrive et
-     empêche la page de sauter.
+     SQUELETTE
      ========================================================== */
   .squelette {
-    border-radius: var(--radius-plaque);
+    border-radius: var(--radius-doux);
     background-color: var(--color-trait);
   }
 
   /* ==========================================================
-     LA FEUILLE DE LA CARTE — le seul mouvement du site.
-     Repliée, elle laisse dépasser sa poignée ; dépliée, elle
-     remonte. Le bloc prefers-reduced-motion plus haut la fige.
+     LA FEUILLE DE LA CARTE
      ========================================================== */
   .feuille {
     transform: translateY(calc(100% - 3.5rem));
@@ -364,26 +489,43 @@
     transform: translateY(0);
   }
 
-  /* Leaflet pose ses propres fonds blancs : on les ramène au papier. */
   .leaflet-container {
     background-color: var(--color-papier);
     font-family: var(--font-sans);
   }
 
-  /* Le corps de texte reste sous 70 caractères par ligne. */
   .mesure {
     max-width: 70ch;
   }
 
-
-  /* Le chapô qui suit un titre de page. Il explique, il n'insiste pas :
-     même corps que le texte courant, en gris, et une mesure courte pour
-     qu'il se lise d'un regard. */
   .chapo {
     max-width: 58ch;
     margin-top: 0.5rem;
     color: var(--color-gris);
     font-size: var(--text-corps);
     line-height: 1.6;
+  }
+
+  /* ==========================================================
+     APERÇU DE CARTE — décor du bandeau d'appel à l'action de
+     l'accueil. Un quadrillage, pas une fausse capture d'écran.
+     ========================================================== */
+  .apercu-carte {
+    position: relative;
+    overflow: hidden;
+    background-color: var(--color-plaque-clair);
+    background-image:
+      linear-gradient(rgba(255, 253, 248, 0.14) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 253, 248, 0.14) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  .apercu-carte-point {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--color-carte);
+    box-shadow: 0 0 0 5px rgba(255, 253, 248, 0.22);
   }
 }

@@ -10,6 +10,326 @@ fait, en absolu.
 
 ---
 
+## 2026-10-10 — Un fond de carte sobre, et une URL qui n'en était pas une
+
+### « Une seule URL à changer » aurait donné une carte blanche
+
+La demande : passer des tuiles OpenStreetMap à un fond sobre (CARTO Positron),
+présenté comme un changement d'une ligne. En testant l'URL avant de l'écrire,
+quatre adresses différentes — deux styles, avec et sans haute densité —
+renvoyaient la même image de 2 049 octets. Ouverte : une tuile vide marquée
+« API KEY REQUIRED ». CARTO exige une clé depuis l'automne 2026. Le changement
+d'une ligne aurait répondu 200 partout, passé le lint et le build, et affiché
+une carte blanche.
+
+### Ce qui a été fait
+
+`src/utils/tuiles.js` décide du fond : CARTO Voyager si `VITE_CARTO_CLE` est
+renseignée, sinon les tuiles OpenStreetMap d'avant. L'attribution suit le
+fournisseur, au même endroit — c'est une condition de licence, elle ne doit pas
+pouvoir se désaccorder de l'URL. La clé est lue à la compilation et finit dans
+le JavaScript public : ce n'est pas un secret, et ça ne doit pas le devenir.
+
+MapTiler a été écarté : son offre gratuite exclut l'usage commercial, impose son
+logo, et **coupe le service** une fois le quota atteint. CARTO prévient au lieu
+de couper.
+
+### Voyager plutôt que Positron
+
+Les deux ont été comparés sur capture, une fois la clé posée. Positron (gris
+clair) isole mieux les plaques, mais fait « autre site » à côté du beige des
+pages. Voyager a un fond crème proche du papier, et ses repères — la Seine, les
+parcs, les grands axes — servent quelqu'un qui cherche son chemin dans la rue,
+ce qui est l'usage annoncé de cette carte. Alexis a retenu Voyager. Le style est
+une constante dans `tuiles.js`, les deux valeurs y sont notées.
+
+### Un défaut révélé par l'attribution
+
+Sur la capture, la mention imposée par la licence n'apparaissait pas. La page
+de la carte retirait 4rem à la hauteur de l'écran pour une barre du haut qui en
+fait 5 : elle dépassait de 16 px, et c'est le bas de la carte qui sortait —
+exactement là où Leaflet pose l'attribution. Corrigé dans `MapPage.jsx`
+(`100dvh - 5rem`). Le défaut datait d'avant ; il était anodin tant que rien
+d'obligatoire ne se trouvait dans ces 16 px.
+
+### Ce qui n'est pas vérifié
+
+Jugé sur cinq adresses et sur un écran d'ordinateur. Avec 576 adresses et sur
+téléphone, le fond plus chargé de Voyager pourrait gêner la lecture des
+plaques : à revoir après l'import.
+Les conditions d'usage ont été lues sur le site de CARTO le 2026-10-10 ; elles
+ont changé une fois cette année, elles peuvent rechanger.
+
+### Le réflexe généralisable
+
+Un code HTTP 200 ne dit pas que la réponse est la bonne. Un service qui veut
+qu'on voie son message d'erreur le renvoie en image, avec un 200 — c'est
+l'échec silencieux de ce journal, fabriqué exprès. Quatre réponses de taille
+identique pour quatre demandes différentes : c'est ce détail qui l'a trahi.
+
+---
+
+## 2026-10-10 — La maquette « Accueil final » : quatre règles de la DA basculent
+
+### Une relecture extérieure a vu ce que la doctrine empêchait de voir
+
+Une personne extérieure a relu l'accueil et listé sept défauts. Vérification
+faite dans un navigateur — la première depuis le début de ce chantier, tout le
+reste avait été jugé sur le code — six étaient fondés. Deux étaient de simples
+bugs. Les autres tenaient à des règles que la DA défendait.
+
+Alexis a ensuite produit une maquette Claude Design (« Accueil final »,
+variante A) qui tranche. Elle est appliquée, et `DA.md` est révisée le même
+jour : c'est la leçon du 2026-09-05, une doctrine qui contredit le code ment.
+
+### Les deux bugs
+
+- **La troncature des cartes.** `line-clamp-2` était posé sur l'encart du
+  verdict, qui a du padding. La coupe masque ce qui dépasse la boîte de
+  contenu, pas la boîte de padding : une demi-ligne apparaissait en bas. La
+  coupe est maintenant sur un élément intérieur, sans padding.
+- **« lire la fiche » caché.** L'encart était en `inline-block` et le lien en
+  `inline-flex` : ils partageaient la même ligne et le lien glissait sous le
+  bord de l'encart. Les deux sont en bloc.
+
+Un troisième, trouvé en regardant : sur écran étroit le contenu de la une,
+posé en absolu au bas d'une boîte à hauteur minimale, débordait par le haut et
+le titre était rogné. Il est dans le flux, la carte grandit avec son texte.
+
+### Les quatre bascules
+
+- **Le verdict se lit en Nunito.** « Caveat = la voix de Wendy » était le
+  principe central de la DA. Mais 250 à 300 caractères de manuscrite à 1.15rem
+  se lisent mal, et le verdict est le produit. C'est l'encart qui distingue
+  désormais la voix. La manuscrite reste pour une signature « — wendy », sur la
+  une et la fiche seulement : une seule personne écrit, la signer douze fois
+  par page n'apprend rien.
+- **Trois signes pour trois sens.** La pastille verte servait à « coup de
+  cœur » et à « ouvert maintenant », et le favori du visiteur était un cœur à
+  côté d'un badge nommé « coup de cœur ». Signet pour le favori, cœur dans le
+  badge, pastille pour « ouvert » seul.
+- **Tout en minuscules.** La règle « une majuscule à chaque mot » cohabitait
+  avec des textes déjà en minuscules. 128 lignes converties par un script
+  relu ligne à ligne en simulation avant application — trois exceptions
+  rattrapées à la main : « OpenStreetMap » (mention légale), « JPEG… 5 Mo »
+  (sigles, unité), et un fragment de phrase que le script ne voyait pas.
+- **Le gris secondaire échouait au contraste.** La DA et `CLAUDE-5.md`
+  annonçaient 4,74:1. Recalculé : `#6E6753` fait **4,27:1** sur le papier
+  actuel, sous le seuil AA. Le 4,74 datait du fond d'avant le 2026-09-05 — la
+  palette avait changé, pas le chiffre recopié à côté. `#67604D` rend 4,74:1.
+
+### Ce qui s'ajoute
+
+- La phrase de concept, avec un rond pour la photo de Wendy. Le nombre
+  d'adresses vient du guide : la maquette écrit « 42 », un chiffre en dur
+  serait faux dès le lendemain.
+- Sur téléphone : les pilules défilent sur une ligne (empilées sur trois rangs
+  elles repoussaient la une sous le pli), et **la recherche existe enfin** —
+  elle était masquée sous `md`, sur un site fait pour la rue.
+
+### Écarts volontaires avec la maquette
+
+- **Le filet des pilules reste `--color-trait-fort`.** La maquette le dessine
+  en `#D6CBAE`, soit 1,22:1 : sous le 3:1 exigé pour la limite d'un contrôle
+  (WCAG 1.4.11), plancher écrit dans ce journal le 2026-09-03.
+- **La grille « dernières adresses » reste sur une colonne au téléphone.** La
+  maquette en dessine deux, mais avec des cartes vides : à 170 px de large, le
+  nom, le verdict et les critères d'une vraie carte n'ont pas été dessinés.
+- Le lien « tout le guide » est conservé (absent de la maquette, mais c'est une
+  navigation). Le libellé « testées et notées par wendy » est retiré : la
+  phrase de concept le dit déjà.
+
+### Ce qui reste ouvert
+
+- **Pas de photo de Wendy** : le rond est un aplat. Renseigner `PHOTO_WENDY`
+  dans `PhraseConcept.jsx` quand elle existe.
+- **« un avis franc, pas une note »** alors que les fiches portent une section
+  « avis des lecteurs » avec une note sur cinq. La phrase parle de Wendy, mais
+  la contradiction se verra. À trancher avec la question déjà ouverte des avis
+  de visiteurs.
+- **`--color-trait-fort` fait 2,82:1 sur le papier** (3,66:1 sur carte). Un
+  champ posé directement sur le fond de page est sous le seuil. Non corrigé :
+  hors maquette. Et « encre sur papier 12,95:1 » dans `CLAUDE-5.md` est faux
+  aussi (8,17:1, toujours conforme).
+- La photo de la une paraît « en noir et blanc » : c'est la photo de
+  démonstration, il n'y a aucun filtre dans le code.
+- Vérifié sur captures à 1440 px et à 390 px (dans un cadre, Chrome sans écran
+  ne descend pas sous 500 px). Les images ne se sont pas chargées dans la
+  capture mobile. Aucun vrai téléphone.
+
+### Le réflexe généralisable
+
+Un chiffre de contraste est vrai pour un couple de couleurs. Quand l'une des
+deux change — ici le fond, le 2026-09-05 — tous les ratios qui la citent sont à
+refaire, y compris ceux qu'on n'a pas touchés. C'est « la vérité recopiée » de
+ce journal, sous une forme qu'aucun `grep` ne trouve : le nombre était juste,
+c'est ce qu'il mesurait qui avait disparu.
+
+---
+
+## 2026-10-09 — Plus aucun écran ne plafonne à cent adresses
+
+### Six écrans mentaient à partir de la 101ᵉ adresse
+
+Le 2026-09-03, le guide (`/cafes`, `/category`) était passé à une vraie
+pagination serveur. Six autres écrans chargeaient encore `limite: LIMITE_MAX`
+(cent) puis filtraient en local : l'accueil, la carte, la recherche de la
+navbar, l'admin, le profil et la corbeille. Wendy a 576 avis : 476 adresses
+auraient été absentes de la carte, introuvables par la recherche, et
+impossibles à modifier depuis l'admin — sans une erreur, sans un indice. La
+note de la navbar prévoyait cette bascule « quand le guide dépassera
+`LIMITE_MAX` » ; le moment est arrivé avant que le contenu existe.
+
+### Ce qui a été fait, écran par écran
+
+- **Navbar** : interroge `?q=` après 250 ms de pause. Chaque réponse porte son
+  terme ; une réponse qui ne correspond plus à la saisie n'est pas affichée,
+  sinon « rien ne correspond » clignoterait entre deux frappes. Une panne
+  réseau dit que la recherche ne répond pas, au lieu de prétendre qu'il n'y a
+  aucun résultat.
+- **Accueil** : n'a besoin que de quatre « dernières », trois fiches à verdict
+  et un total. Trois petites requêtes, filtres envoyés au serveur : `tri=recent`,
+  `avec_verdict=1`, et `ouvert=1`.
+- **« Ouvert maintenant » côté serveur** : la règle de `estOuvert` (front) est
+  réécrite en SQL (`conditionOuvert`, fuseau Europe/Paris, fermeture après
+  minuit comprise). Comparée à la vraie base sur 1 680 couples adresse/instant
+  (une semaine, pas de 30 min) : 0 écart. Filtrer cette page-là aurait montré
+  les ouvertes *de la page*, pas du guide.
+- **Carte** : paginer des marqueurs montrerait un morceau de Paris. Nouvel
+  endpoint `GET /api/cafes/carte` : tous les points placés, version allégée
+  (id, nom, arrondissement, coordonnées, spécialité, wifi), plafonné à 2000 et
+  qui **le dit** (`total` > `donnees.length` affiche un bandeau). Le détail
+  (verdict, critères) se charge à la sélection. Ici le filtre local est honnête
+  parce que l'ensemble est complet.
+- **Admin, corbeille, profil** : liste paginée par 20/12 avec « voir la suite ».
+  L'admin gagne une recherche (`q`) envoyée au serveur à la validation.
+  `Admin.jsx` a été scindé (`AdminListe`, `AdminRecherche`) pour rester sous
+  200 lignes.
+- `LIMITE_MAX` supprimé du front : une constante que plus personne n'utilise
+  est un piège qui attend qu'on la réutilise.
+
+### Deux défauts trouvés en chemin
+
+- **Pagination instable** : `ORDER BY nom` sans départage. Deux adresses de
+  même nom pouvaient changer de place entre deux requêtes, et une page en
+  répétait une ou en sautait une. `cafes.id` départage désormais.
+- **Deux « spécialités » qui divergeaient** : la route dédiée tolérait
+  « Matcha, Thé » (espace après la virgule), la recherche non. Une seule
+  condition partagée.
+
+### Ce qui n'est pas vérifié
+
+Back testé (25 tests, routes appelées sur un serveur local, base de 5 adresses).
+Front : lint et build passent, mais **aucun écran n'a été ouvert dans un
+navigateur** et rien n'a été testé avec plusieurs centaines d'adresses — la
+base n'en contient que cinq. À faire avant de saisir : parcourir accueil,
+carte, navbar et admin à la main, puis recommencer après un import de volume.
+Effet connu : retirer un favori ou rétablir une adresse recharge la liste à la
+page 1.
+
+### Le réflexe généralisable
+
+Une pagination faite à moitié est pire qu'aucune : la moitié paginée rassure
+sur la moitié qui ne l'est pas. Après avoir corrigé un écran, chercher les
+autres usages de la même limite (`grep` sur la constante) au lieu de supposer
+que le problème était local.
+
+---
+
+## 2026-10-09 — Créer ou modifier une adresse devient atomique
+
+### Une fiche pouvait exister sans exister
+
+`createCafe` écrivait dans trois tables à la suite — `cafes`, puis
+`criteres_cafe`, puis `cafe_horaires` — sans transaction. Si la deuxième ou la
+troisième écriture échouait (valeur trop longue, connexion coupée, base qui
+redémarre), la première restait en base. Or toutes les lectures joignent
+`criteres_cafe` en jointure interne : une fiche sans critères n'apparaît **nulle
+part**, ni dans le guide, ni sur la carte, ni dans la corbeille.
+
+Le pire est l'effet de bord : `adresseDejaPrise` ne lit que `cafes`. La fiche
+fantôme continuait donc d'occuper son adresse. Wendy retentait la saisie et
+recevait « X occupe déjà cette adresse », où X était une fiche qu'elle ne
+pouvait ni voir ni supprimer depuis l'admin. Seul un accès SQL direct sortait
+de là. `updateCafe` avait le même défaut sur ses trois `UPDATE` : une panne au
+milieu laissait une adresse modifiée à moitié.
+
+### Ce qui a été fait
+
+`db.transaction(travail)` dans `config/db.js` : ouvre une connexion, valide si
+tout passe, annule sinon, rend toujours la connexion au pool.
+`remplacerHoraires` accepte la connexion de la transaction en paramètre
+facultatif, les autres appelants ne changent pas. `createCafe` et `updateCafe`
+écrivent leurs trois tables dans une seule transaction.
+
+Le géocodage Nominatim est volontairement **resté dehors** : c'est un appel
+réseau pouvant durer 5 s, et le faire dans la transaction garderait une
+connexion MySQL (le pool en compte dix) ouverte pendant tout ce temps. Il
+s'exécute avant, ses coordonnées sont passées à l'écriture.
+
+### Ce qui n'est pas vérifié
+
+`npm test` passe (22 tests) mais aucun ne couvre l'annulation : la suite n'a pas
+de base. Le comportement attendu — un échec sur `criteres_cafe` ne laisse aucune
+ligne dans `cafes` — n'a été relu dans le code, pas rejoué. À tester à la main
+la première fois : faire échouer le second `INSERT` et vérifier `cafes`.
+
+### Le réflexe généralisable
+
+Dès qu'une opération métier écrit dans plus d'une table, la question est
+« quel état laisse-t-elle si elle s'arrête au milieu ? ». Ici la réponse était
+pire qu'une erreur : un état invisible qui bloque des actions légitimes. Le
+motif est celui de l'échec silencieux de ce journal — le système continue de
+tourner en donnant un résultat faux, ici un refus de doublon sur une adresse
+qui n'existe pour personne.
+
+---
+
+## 2026-09-05 — La DA « plaque de rue » révisée pour le mockup Claude Design
+
+### Une doctrine « tranchée » verrouillait deux interdits que le nouveau visuel devait enfreindre
+
+`DA.md` interdisait formellement l'ombre portée (« nulle part », interdit n°7)
+et le code couleur par catégorie (refusé explicitement en section 2, comme
+créant « quatre systèmes concurrents »). Alexis a produit un mockup avec
+Claude Design (`SpotThePlace — Accueil desktop.zip`) qui repose sur ces deux
+exact points : cartes à ombre douce sur presque chaque bloc, et une couleur
+par spécialité (matcha, bubble tea, thé) pour la lecture rapide de la grille.
+Appliquer ce mockup en éditant juste le CSS, sans toucher DA.md, aurait laissé
+un document de décision qui ment sur ce que fait vraiment le code — exactement
+le défaut que ce journal existe pour repérer (« la vérité recopiée » / le
+défaut implicite d'un jeton non tenu à jour).
+
+### Ce qui a été fait
+
+Cadrage du périmètre avec Alexis avant d'écrire une ligne : confirmé que le
+changement touche tout le front (les tokens de la DA irriguent les 8 pages et
+~20 composants, pas seulement la Home), et que sur les deux règles
+explicitement contredites, le mockup l'emporte. `DA.md` réécrit en assumant la
+bascule plutôt qu'en la maquillant : les interdits abrogés sont barrés et
+datés, pas supprimés (section 9), une nouvelle section couleur-par-catégorie
+documente les jetons `-vif`/`-clair` et pourquoi ils existent maintenant,
+l'interdit d'animation est explicitement assoupli (transition d'ombre au
+survol autorisée, rien d'autre) puisque des cartes cliquables avec ombre au
+repos et sans réaction au survol auraient été un système à moitié appliqué.
+Une règle non contredite a été gardée sciemment contre l'exemple du mockup :
+les marqueurs de la vraie carte Leaflet restent des plaques nominatives, pas
+des points, parce que cette règle vient d'un besoin d'usage réel (lisible en
+marchant) et non d'un choix esthétique — le schéma de carte du mockup n'est
+qu'un décor dans un bandeau, pas une maquette de la carte interactive.
+
+### Le réflexe généralisable
+
+Une DA marquée « tranchée » n'interdit pas d'y revenir, elle interdit de le
+faire sans trace. Quand une nouvelle contrainte visuelle contredit une règle
+documentée, la question n'est pas seulement « est-ce que ça a l'air bien ? »
+mais « la doctrine dit-elle encore la vérité une fois que j'ai fini ? ». Si
+non, elle se réécrit le jour même, avec la date et le pourquoi — sinon le
+prochain qui lit `DA.md` (humain ou pas) applique une règle que le code a déjà
+abandonnée.
+
+---
+
 ## 2026-09-03 — Pagination réelle, contrastes calculés, thème fusionné
 
 ### Le guide cachait des adresses sans le dire

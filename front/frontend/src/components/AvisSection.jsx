@@ -95,7 +95,7 @@ export default function AvisSection({ cafeId }) {
   return (
     <section>
       <div className="mb-6 flex items-end justify-between gap-4">
-        <h2 className="text-section text-encre">Avis des lecteurs</h2>
+        <h2 className="text-section text-encre">avis des lecteurs</h2>
         {moyenne !== null && (
           <p className="text-meta text-gris">
             {String(moyenne).replace(".", ",")} sur 5, {total} avis
@@ -108,7 +108,7 @@ export default function AvisSection({ cafeId }) {
           {formulaireOuvert ? (
             <form onSubmit={envoyer} className="border border-trait rounded-carte p-5">
               <fieldset>
-                <legend className="mb-3 text-meta text-gris">Votre Note</legend>
+                <legend className="mb-3 text-meta text-gris">votre note</legend>
                 <div className="flex gap-2">
                   {NOTES.map((valeur) => (
                     <button
@@ -116,7 +116,7 @@ export default function AvisSection({ cafeId }) {
                       type="button"
                       aria-pressed={note === valeur}
                       onClick={() => setNote(valeur)}
-                      className={`flex w-11 items-center justify-center ${
+                      className={`flex h-11 w-11 items-center justify-center rounded-plaque ${
                         note === valeur ? "bg-plaque text-white" : "border border-trait-fort text-encre"
                       }`}
                     >
@@ -127,7 +127,7 @@ export default function AvisSection({ cafeId }) {
               </fieldset>
 
               <label className="mt-5 block">
-                <span className="mb-2 block text-meta text-gris">Votre Commentaire</span>
+                <span className="mb-2 block text-meta text-gris">votre commentaire</span>
                 <textarea
                   value={commentaire}
                   onChange={(e) => setCommentaire(e.target.value)}
@@ -144,7 +144,7 @@ export default function AvisSection({ cafeId }) {
                   {envoiEnCours ? "envoi…" : "publier"}
                 </button>
                 <button type="button" onClick={() => setFormulaireOuvert(false)} className="bouton-secondaire">
-                  Annuler
+                  annuler
                 </button>
               </div>
             </form>
@@ -155,7 +155,7 @@ export default function AvisSection({ cafeId }) {
               </button>
               {monAvis && (
                 <button type="button" onClick={supprimer} className="flex items-center px-4 text-meta text-rouge">
-                  Supprimer Mon Avis
+                  supprimer mon avis
                 </button>
               )}
             </div>
@@ -163,7 +163,7 @@ export default function AvisSection({ cafeId }) {
         </div>
       ) : (
         <p className="mb-8 text-meta text-gris">
-          <Link to="/login" className="underline underline-offset-4">Se Connecter</Link> Pour Donner Son Avis.
+          <Link to="/login" className="underline underline-offset-4">se connecter</Link> pour donner son avis.
         </p>
       )}
 

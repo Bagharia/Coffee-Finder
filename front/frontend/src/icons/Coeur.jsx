@@ -1,7 +1,8 @@
 /**
- * Favori de l'utilisateur — et rien d'autre.
- * Le coup de cœur de Wendy est une plaque rouge portant le mot (DA, section 5) :
- * il n'emprunte jamais ce signe.
+ * Le coup de cœur de Wendy, dans son badge — et rien d'autre.
+ * Le favori du visiteur est un signet (`Signet.jsx`) depuis le 2026-10-10 :
+ * un cœur à côté d'un badge qui s'appelle « coup de cœur » désignait deux
+ * choses à la fois (DA, section 5).
  */
 export default function Coeur({ rempli = false, taille = 20 }) {
   return (

@@ -1,6 +1,6 @@
 import { JOURS } from "../utils/horaires";
 
-const champ = "border border-trait bg-carte px-2 text-corps text-encre";
+const champ = "rounded-carte border border-trait-fort bg-carte px-2 text-corps text-encre";
 
 /**
  * Saisie des horaires : une ligne par plage, plusieurs plages possibles par
@@ -28,7 +28,7 @@ export default function AdminHoraires({ plages, onChange }) {
 
   return (
     <fieldset>
-      <legend className="mb-2 text-meta text-gris">Horaires</legend>
+      <legend className="mb-2 text-meta text-gris">horaires</legend>
 
       <div className="flex flex-col gap-2">
         {JOURS.map((nom, index) => {
@@ -41,7 +41,7 @@ export default function AdminHoraires({ plages, onChange }) {
             <div key={jour} className="flex flex-wrap items-center gap-3 border-b border-trait py-2">
               <span className="w-24 shrink-0 text-meta text-gris">{nom}</span>
 
-              {duJour.length === 0 && <span className="text-meta text-gris">Fermé</span>}
+              {duJour.length === 0 && <span className="text-meta text-gris">fermé</span>}
 
               {duJour.map((plage) => (
                 <span key={plage.position} className="flex items-center gap-2">
@@ -66,7 +66,7 @@ export default function AdminHoraires({ plages, onChange }) {
                     aria-label={`retirer cette plage du ${nom}`}
                     className="flex h-11 w-11 items-center justify-center text-meta text-gris"
                   >
-                    Retirer
+                    retirer
                   </button>
                 </span>
               ))}
@@ -76,7 +76,7 @@ export default function AdminHoraires({ plages, onChange }) {
                 onClick={() => ajouter(jour)}
                 className="flex h-11 items-center text-meta text-encre underline"
               >
-                Ajouter Une Plage
+                ajouter une plage
               </button>
             </div>
           );
@@ -88,11 +88,11 @@ export default function AdminHoraires({ plages, onChange }) {
         onClick={copierLundi}
         className="bouton-secondaire mt-3"
       >
-        Copier Le Lundi Sur Toute La Semaine
+        copier le lundi sur toute la semaine
       </button>
 
       <p className="mt-2 text-meta text-gris">
-        Une Fermeture Après Minuit S'écrit Telle Quelle : 8h00 – 01h30.
+        une fermeture après minuit s'écrit telle quelle : 8h00 – 01h30.
       </p>
     </fieldset>
   );

@@ -3,13 +3,14 @@ const router = express.Router();
 const { authenticateToken, isAdmin } = require('../middleware/auth');
 
 const {
-    getAllCafes, getNouveautes, getRandomCafe, getCafeById, getCafeByArrondissement, getCafeBySpecialite, getCafeWithWifi, getCafeWithPrice, getCafeWithAmbiance, searchCafes, createCafe, updateCafe, deleteCafe,
+    getAllCafes, getCarte, getNouveautes, getRandomCafe, getCafeById, getCafeByArrondissement, getCafeBySpecialite, getCafeWithWifi, getCafeWithPrice, getCafeWithAmbiance, searchCafes, createCafe, updateCafe, deleteCafe,
     getCorbeille, restaurerCafe, televerserImage, supprimerImage
 } = require('../controllers/cafeController');
 
 // Avant /:id, sinon Express lirait « corbeille » comme un identifiant.
 router.get('/corbeille', authenticateToken, isAdmin, getCorbeille);
 
+router.get('/carte', getCarte);
 router.get('/nouveautes', getNouveautes);
 router.get('/random', getRandomCafe);
 router.get('/search', searchCafes);

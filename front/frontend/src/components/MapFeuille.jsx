@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
  * La feuille de la carte : le seul mouvement du site (DA, interdit 8).
  * Repliée, elle ne montre que le nom ; dépliée, le détail de l'adresse.
  */
-export default function MapFeuille({ cafe, ouverte, onBasculer, onFermer }) {
+export default function MapFeuille({ cafe, ouverte, onBasculer, onFermer, distance }) {
   if (!cafe) return null;
 
   const criteres = [
@@ -32,8 +32,13 @@ export default function MapFeuille({ cafe, ouverte, onBasculer, onFermer }) {
       <div className="border-t border-trait px-4 py-4">
         {cafe.adresse && <p className="text-meta text-gris">{cafe.adresse}</p>}
         <p className="text-meta text-gris">{cafe.arrondissement}</p>
+        {distance && <p className="text-meta text-encre">à {distance} de vous</p>}
 
-        {cafe.verdict && <p className="voix mt-4">{cafe.verdict}</p>}
+        {cafe.verdict && (
+          <p className="voix mt-4">
+            {cafe.verdict}
+          </p>
+        )}
 
         {criteres.length > 0 && (
           <ul className="mt-4 flex flex-wrap gap-x-4 text-meta text-gris">
@@ -43,10 +48,10 @@ export default function MapFeuille({ cafe, ouverte, onBasculer, onFermer }) {
 
         <div className="mt-4 flex gap-3">
           <Link to={`/cafe/${cafe.id}`} className="bouton">
-            Voir La Fiche
+            voir la fiche
           </Link>
           <button type="button" onClick={onFermer} className="bouton-secondaire">
-            Fermer
+            fermer
           </button>
         </div>
       </div>

@@ -5,7 +5,7 @@ import { usersAPI } from "../services/api";
 // côté front, c'est faire remplir un formulaire pour rien.
 const MOT_DE_PASSE_MIN = 8;
 
-const champ = "w-full border border-trait bg-carte px-3 text-corps text-encre";
+const champ = "w-full rounded-carte border border-trait-fort bg-carte px-3 text-corps text-encre";
 
 export default function ProfileMotDePasse() {
   const [valeurs, setValeurs] = useState({ actuel: "", nouveau: "", confirmation: "" });
@@ -47,7 +47,7 @@ export default function ProfileMotDePasse() {
   return (
     <form onSubmit={envoyer} className="flex max-w-sm flex-col gap-3">
       <label>
-        <span className="mb-2 block text-meta text-gris">Mot De Passe Actuel</span>
+        <span className="mb-2 block text-meta text-gris">mot de passe actuel</span>
         <input type="password" autoComplete="current-password" value={valeurs.actuel} onChange={modifier("actuel")} required className={champ} />
       </label>
 
@@ -59,12 +59,12 @@ export default function ProfileMotDePasse() {
       </label>
 
       <label>
-        <span className="mb-2 block text-meta text-gris">Confirmation</span>
+        <span className="mb-2 block text-meta text-gris">confirmation</span>
         <input type="password" autoComplete="new-password" value={valeurs.confirmation} onChange={modifier("confirmation")} required className={champ} />
       </label>
 
       {erreur && <p className="text-meta text-rouge">{erreur}</p>}
-      {succes && <p className="text-meta text-encre">Mot De Passe Modifié.</p>}
+      {succes && <p className="text-meta text-encre">mot de passe modifié.</p>}
 
       <button type="submit" disabled={enCours} className="bouton mt-2">
         {enCours ? "modification…" : "modifier"}

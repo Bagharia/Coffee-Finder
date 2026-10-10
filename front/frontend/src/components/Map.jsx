@@ -1,79 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { cafesAPI, LIMITE_MAX } from "../services/api";
-import { coordonnees, estPlacable, regrouperMarqueurs } from "../utils/regrouperMarqueurs";
+import { cafesAPI } from "../services/api";
+import { coordonnees, estPlacable } from "../utils/regrouperMarqueurs";
+import Marqueurs from "./MapMarqueurs";
 import MapFiltres from "./MapFiltres";
 import MapFeuille from "./MapFeuille";
+import MapPosition from "./MapPosition";
+import MapProches from "./MapProches";
+import { useGeolocalisation } from "../hooks/useGeolocalisation";
+import { distanceMetres, formaterDistance, plusProches } from "../utils/distance";
+import { TUILES } from "../utils/tuiles";
 
 const CENTRE_PARIS = [48.8566, 2.3522];
 
-// Échappe le nom avant de l'injecter dans le HTML du marqueur : il vient de la
-// base, et Leaflet ne fait pas de rendu React ici.
-const echapper = (texte) =>
-  String(texte).replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
-  );
-
-/** Un marqueur est une plaque portant le nom, jamais une épingle générique. */
-function iconePlaque(libelle, active) {
-  return L.divIcon({
-    className: "",
-    html: `<span class="plaque plaque-carte${active ? " plaque-active" : ""}">${echapper(libelle)}</span>`,
-    // Ancrée par son bord bas-gauche, comme une plaque posée sur la façade.
-    iconAnchor: [0, 0]
-  });
-}
-
-function Marqueurs({ adresses, selectionId, onSelectionner }) {
-  const map = useMap();
-
-  // Le regroupement dépend du cadre visible, que Leaflet ne notifie que par
-  // événement. On incrémente un compteur à chaque déplacement et le calcul se
-  // refait au rendu : l'effet ne fait qu'écouter, il ne pose aucun état.
-  const [deplacements, setDeplacements] = useState(0);
-
-  useEffect(() => {
-    const signaler = () => setDeplacements((n) => n + 1);
-    map.on("moveend", signaler);
-    map.on("zoomend", signaler);
-    return () => {
-      map.off("moveend", signaler);
-      map.off("zoomend", signaler);
-    };
-  }, [map]);
-
-  const groupes = useMemo(
-    () => regrouperMarqueurs(map, adresses),
-    // `deplacements` n'entre pas dans le calcul, il en déclenche la reprise.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [map, adresses, deplacements]
-  );
-
-  return groupes.map(({ cle, position, adresses: contenu }) => {
-    const groupe = contenu.length > 1;
-    const libelle = groupe ? `${contenu.length} adresses` : contenu[0].nom;
-    const active = !groupe && contenu[0].id === selectionId;
-
-    return (
-      <Marker
-        key={cle}
-        position={position}
-        icon={iconePlaque(libelle, active)}
-        eventHandlers={{
-          click: () => {
-            if (groupe) {
-              map.flyTo(position, Math.min(map.getZoom() + 2, 18));
-              return;
-            }
-            onSelectionner(contenu[0]);
-          }
-        }}
-      />
-    );
-  });
-}
+// Au-delà, la personne n'est pas à Paris : recentrer sur elle montrerait du vide.
+const DISTANCE_MAX_M = 20000;
+const NB_PROCHES = 5;
 
 /** Recadre sur les adresses affichées, sans jamais suivre l'utilisateur. */
 function Recadrage({ adresses }) {
@@ -92,15 +36,20 @@ function Recadrage({ adresses }) {
 
 export default function Map() {
   const [adresses, setAdresses] = useState([]);
+  const [totalCarte, setTotalCarte] = useState(0);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState(null);
   const [filtres, setFiltres] = useState({ specialite: "", wifi: false, arrondissement: "" });
   const [selection, setSelection] = useState(null);
   const [feuilleOuverte, setFeuilleOuverte] = useState(false);
+  const [cible, setCible] = useState(null);
+  const geo = useGeolocalisation();
 
   useEffect(() => {
-    cafesAPI.getAll({ limite: LIMITE_MAX })
-      .then((reponse) => setAdresses(reponse.donnees))
+    // La carte a besoin de tous les points pour regrouper ses marqueurs : elle
+    // passe par un endpoint allégé, pas par la liste paginée du guide.
+    cafesAPI.getCarte()
+      .then((reponse) => { setAdresses(reponse.donnees); setTotalCarte(reponse.total); })
       .catch((err) => setErreur(err.message))
       .finally(() => setChargement(false));
   }, []);
@@ -117,9 +66,33 @@ export default function Map() {
 
   const placables = useMemo(() => retenues.filter(estPlacable), [retenues]);
 
+  // Calculées sur les adresses retenues : filtrer « matcha » puis demander
+  // « près de moi » donne les matcha les plus proches, pas les cafés.
+  const proches = useMemo(
+    () => (geo.position ? plusProches(geo.position, placables, NB_PROCHES) : []),
+    [geo.position, placables]
+  );
+  const loin = proches.length > 0 && proches[0].distance > DISTANCE_MAX_M;
+
+  const choisirProche = (cafe) => {
+    selectionner(cafe);
+    // Un nouvel objet à chaque choix : l'effet de la carte se rejoue même si la
+    // même adresse est choisie deux fois de suite.
+    setCible({ lat: Number(cafe.latitude), lon: Number(cafe.longitude) });
+  };
+
+  const distanceSelection = geo.position && selection && estPlacable(selection)
+    ? formaterDistance(distanceMetres(geo.position, selection))
+    : null;
+
   const selectionner = (cafe) => {
+    // La feuille s'ouvre tout de suite sur le nom ; le détail (verdict,
+    // critères) n'est pas dans les points de la carte et arrive à la suite.
     setSelection(cafe);
     setFeuilleOuverte(true);
+    cafesAPI.getById(cafe.id)
+      .then((complet) => setSelection((courante) => (courante?.id === complet.id ? complet : courante)))
+      .catch(() => {});
   };
 
   if (chargement) {
@@ -138,22 +111,34 @@ export default function Map() {
 
   return (
     <div className="flex h-full w-full flex-col">
-      <MapFiltres filtres={filtres} onChange={setFiltres} total={retenues.length} />
+      <MapFiltres
+        filtres={filtres}
+        onChange={setFiltres}
+        total={retenues.length}
+        onLocaliser={geo.localiser}
+        localisation={geo.statut}
+      />
+
+      <MapProches statut={geo.statut} message={geo.message} proches={proches} loin={loin} onChoisir={choisirProche} />
+
+      {totalCarte > adresses.length && (
+        <p className="shrink-0 border-b border-trait bg-carte px-3 py-2 text-meta text-rouge">
+          la carte affiche {adresses.length} adresses sur {totalCarte}. les autres sont dans le guide.
+        </p>
+      )}
 
       <div className="relative min-h-0 flex-1 overflow-hidden">
         {placables.length === 0 ? (
           <div className="flex h-full items-center justify-center bg-papier p-8">
             <p className="mesure text-corps text-encre">
-              Aucune Adresse À Placer Avec Ces Filtres. Élargir La Recherche, Ou Proposer La Vôtre.
+              aucune adresse à placer avec ces filtres. élargir la recherche, ou proposer la vôtre.
             </p>
           </div>
         ) : (
           <MapContainer center={CENTRE_PARIS} zoom={12} scrollWheelZoom style={{ height: "100%", width: "100%" }}>
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
+            <TileLayer url={TUILES.url} attribution={TUILES.attribution} maxZoom={TUILES.maxZoom} />
             <Recadrage adresses={placables} />
+            <MapPosition position={geo.position} centrer={!loin} cible={cible} />
             <Marqueurs
               adresses={placables}
               selectionId={selection?.id}
@@ -167,6 +152,7 @@ export default function Map() {
           ouverte={feuilleOuverte}
           onBasculer={() => setFeuilleOuverte((ouverte) => !ouverte)}
           onFermer={() => { setFeuilleOuverte(false); setSelection(null); }}
+          distance={distanceSelection}
         />
       </div>
     </div>

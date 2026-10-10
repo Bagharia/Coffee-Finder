@@ -57,4 +57,64 @@ function validerHoraires(horaires) {
     return { plages };
 }
 
-module.exports = { validerHoraires, HEURE, PLAGES_MAX };
+// Même règle que le front (`estOuvert`), écrite en SQL : filtrer « ouvert
+// maintenant » sur la page déjà chargée ne montrerait que les ouvertes de cette
+// page, alors que la question porte sur tout le guide.
+const FUSEAU = 'Europe/Paris';
+
+const FORMAT = new Intl.DateTimeFormat('en-US', {
+    timeZone: FUSEAU,
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23'
+});
+
+const INDEX_JOUR = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
+
+/** L'instant à Paris : { jour (1 = lundi … 7), minutes depuis minuit }. */
+function instantParis(date = new Date()) {
+    const parties = Object.fromEntries(FORMAT.formatToParts(date).map((p) => [p.type, p.value]));
+
+    return {
+        jour: INDEX_JOUR[parties.weekday],
+        minutes: Number(parties.hour) * 60 + Number(parties.minute)
+    };
+}
+
+const enHeure = (minutes) => {
+    const h = String(Math.floor(minutes / 60)).padStart(2, '0');
+    const m = String(minutes % 60).padStart(2, '0');
+    return `${h}:${m}:00`;
+};
+
+/**
+ * Fragment SQL « ouvert à cet instant », à poser dans un WHERE sur `cafes`.
+ *
+ * Une plage dont la fermeture est postérieure à l'ouverture se lit sur son
+ * jour. Sinon elle déborde après minuit : le soir de son jour, ou le matin du
+ * jour suivant — d'où la plage de la veille qui décide à 00h30.
+ * Une adresse sans aucune plage n'est jamais retenue : « on ne sait pas » n'est
+ * pas « ouvert ».
+ *
+ * @returns {{ sql: string, valeurs: Array }}
+ */
+function conditionOuvert(date = new Date()) {
+    const { jour, minutes } = instantParis(date);
+    const veille = jour === 1 ? 7 : jour - 1;
+    const heure = enHeure(minutes);
+
+    return {
+        sql: `EXISTS (
+            SELECT 1 FROM cafe_horaires h
+            WHERE h.cafe_id = cafes.id AND (
+                (h.fermeture > h.ouverture AND h.jour = ? AND h.ouverture <= ? AND h.fermeture > ?)
+                OR (h.fermeture <= h.ouverture AND h.jour = ? AND h.ouverture <= ?)
+                OR (h.fermeture <= h.ouverture AND h.jour = ? AND h.fermeture > ?)
+            )
+        )`,
+        valeurs: [jour, heure, heure, jour, heure, veille, heure]
+    };
+}
+
+module.exports = { validerHoraires, instantParis, conditionOuvert, HEURE, PLAGES_MAX };

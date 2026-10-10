@@ -235,13 +235,14 @@ racine du dépôt.
 
 ### Variables à renseigner
 
-Au-delà de celles du `.env.example`, quatre méritent une décision consciente.
+Au-delà de celles du `.env.example`, cinq méritent une décision consciente.
 
 | Variable | En production |
 |---|---|
 | `NODE_ENV` | `production` — c'est elle qui pose le cookie de session en `secure` |
 | `TRUST_PROXY` | **obligatoire**, le serveur refuse de démarrer sans. `1` derrière un reverse proxy (tous les PaaS), `0` si l'API est exposée directement |
 | `DB_SSL` | `1` chez tout hébergeur de base managée, qui refuse le clair |
+| `SITE_URL` | **obligatoire**, l'URL publique du front (`https://spotheplace.fr`), sans barre finale. Le sitemap en tire ses adresses absolues |
 | `NOMINATIM_CONTACT` | une adresse e-mail ou l'URL du site — sans elle, le géocodage depuis une IP de datacenter finit en 403 |
 
 `TRUST_PROXY` n'a pas de défaut sûr, d'où le refus de démarrer : à `0` derrière
@@ -265,6 +266,32 @@ complète de l'API dans `VITE_API_URL`, `FRONTEND_URL` sur l'URL exacte du
 front, et `COOKIE_SAMESITE=none`. Ce dernier impose HTTPS **des deux côtés** :
 sans quoi le navigateur jette le cookie de session sans le moindre message, et
 la connexion échoue sans erreur visible.
+
+### Fond de carte
+
+Le front lit `VITE_CARTO_CLE` **à la compilation** : la clé doit être présente
+dans l'environnement du build, pas seulement au lancement. Elle est gratuite
+(https://www.carto.com/basemaps/apikey/). Sans elle, la carte reste sur les
+tuiles OpenStreetMap. Avec une clé fausse ou révoquée, CARTO renvoie des tuiles
+vides marquées « API KEY REQUIRED » : la carte est blanche, sans erreur — à
+vérifier d'un coup d'œil après chaque déploiement.
+
+L'attribution (« © OpenStreetMap contributors, © CARTO ») est une condition de
+la licence : elle est posée dans `src/utils/tuiles.js`, ne pas la masquer en CSS.
+
+### Sitemap et robots.txt
+
+L'API répond à `/sitemap.xml` et `/robots.txt`, **à sa racine**. Les moteurs les
+cherchent à la racine du domaine du site : le reverse proxy doit donc relayer
+ces deux chemins vers l'API, comme il relaie `/api`. Si le front est sur un
+autre domaine que l'API (montage « deux domaines »), un sitemap servi par le
+domaine de l'API ne vaut pas pour les pages du front — il faut alors relayer
+ces deux chemins depuis le domaine du front.
+
+Vérifier après déploiement : `curl https://<site>/robots.txt` et
+`curl https://<site>/sitemap.xml` doivent répondre, avec le bon domaine dans les
+adresses. `/api/` n'est volontairement pas interdit dans `robots.txt` : le front
+est une SPA et Google l'affiche en appelant l'API et en chargeant les photos.
 
 ### Sonde de disponibilité
 

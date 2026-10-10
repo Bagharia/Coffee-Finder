@@ -59,6 +59,31 @@ if (EN_PRODUCTION && process.env.TRUST_PROXY === undefined) {
 
 const TRUST_PROXY = process.env.TRUST_PROXY === '1';
 
+// Racine publique du site (celle du front), sans barre finale. Le sitemap exige
+// des URL absolues : en production, un défaut serait une adresse fausse
+// publiée à tous les moteurs de recherche, d'où l'échec bruyant.
+const lireSiteUrl = () => {
+  const brut = (process.env.SITE_URL || '').trim().replace(/\/+$/, '');
+
+  if (!brut) {
+    if (EN_PRODUCTION) {
+      throw new Error('SITE_URL est obligatoire en production (ex. https://spotheplace.fr), pour le sitemap.');
+    }
+    return 'http://localhost:5173';
+  }
+
+  try {
+    const { protocol, pathname } = new URL(brut);
+    if (!['http:', 'https:'].includes(protocol) || pathname !== '/') throw new Error();
+  } catch {
+    throw new Error(`SITE_URL doit être une racine http(s) sans chemin (reçu : ${brut}).`);
+  }
+
+  return brut;
+};
+
+const SITE_URL = lireSiteUrl();
+
 // Les bases managées (Railway, Aiven, Scaleway, PlanetScale…) refusent les
 // connexions en clair. mysql2 n'active TLS que si on lui passe un objet `ssl` :
 // sans lui, la connexion est rejetée au handshake, avant toute requête.
@@ -83,6 +108,7 @@ module.exports = {
   NODE_ENV,
   EN_PRODUCTION,
   TRUST_PROXY,
+  SITE_URL,
   JWT_SECRET: process.env.JWT_SECRET,
   // Origine autorisée par CORS. En production, une absence de valeur ferait
   // silencieusement tomber l'API sur localhost : on préfère l'échec bruyant.

@@ -31,12 +31,13 @@ composant.
 ## Règles de travail
 
 - **Français partout** : interface, messages d'erreur, commentaires, commits.
-- **Une majuscule au début de chaque mot** dans les textes d'interface, **sauf
-  les titres** (`h1`, `h2`) qui prennent la capitale au premier mot seulement,
-  comme le veut le français. Écrite dans les chaînes, jamais par
+- **Tout en minuscules** dans les textes d'interface, titres compris. Gardent
+  leur casse : ce qui vient de la base (noms d'adresses, verdicts, messages
+  d'erreur de l'API), les noms propres d'une mention légale, les sigles et
+  unités, les titres d'onglet. Écrit dans les chaînes, jamais par
   `text-transform` : la transformation CSS toucherait aussi les noms venant de
-  la base. Révisions des 2026-09-03 et 2026-09-04, la DA garde trace des règles
-  précédentes.
+  la base. Révisions des 2026-09-03, 2026-09-04 et 2026-10-10, la DA garde
+  trace des règles précédentes.
 - Ne jamais lancer de migration ni de `DROP` sans me demander d'abord.
 - Ne pas installer de dépendance sans me demander. La stack ci-dessus suffit
   pour presque tout ; une lib de plus, c'est une dette de plus.
@@ -69,6 +70,8 @@ n'a pas lieu d'être, soit on l'ajoute au thème — jamais en local.
 
 - `.plaque` est le seul geste visuel fort. Un seul par zone d'écran.
 - `.voix` est réservé aux avis de Wendy. Jamais pour du texte d'interface.
+  Depuis le 2026-10-10 le verdict est en Nunito ; la manuscrite (`.signature`)
+  ne sert qu'à « — wendy », sur la une et sur la fiche.
 - Aucun emoji dans le rendu. Pictogramme nécessaire = SVG monochrome dans
   `src/icons/`. Les emoji actuels (`💼` dans `WorkScore`, `☕🍵🧋🫖` dans
   `Home`) sont à supprimer.
@@ -87,8 +90,9 @@ chargement, vide, erreur, contenu. L'état vide est une invitation à agir
 ### Accessibilité — plancher non négociable
 
 - Contraste AA sur tout texte, recalculé le 2026-09-03 : blanc sur plaque
-  10,79:1, encre sur papier 12,95:1, gris sur papier 4,74:1 (passe de justesse,
-  ne pas éclaircir sans refaire le calcul), rouge sur papier 5,70:1, blanc sur
+  10,79:1, encre sur papier 12,95:1, gris sur papier 4,74:1 depuis le 2026-10-10
+  (`#67604D` ; l'ancien `#6E6753` ne faisait que 4,27:1 sur la palette du
+  2026-09-05 — passe de justesse, ne pas éclaircir sans refaire le calcul), rouge sur papier 5,70:1, blanc sur
   rouge 6,78:1.
 - **La bordure d'un contrôle n'est pas un filet décoratif.** `--color-trait`
   (1,36:1) convient aux séparateurs ; un bouton, un `select`, un `input` ou un
